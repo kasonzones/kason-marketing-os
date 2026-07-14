@@ -1,0 +1,337 @@
+{
+  "table": {
+    "name": "content",
+    "label": "内容资产",
+    "description": "管理营销内容资产的创建、审核、发布全生命周期，跟踪SEO表现和流量转化数据"
+  },
+  "fields": [
+    {
+      "name": "_id",
+      "type": "autonumber",
+      "required": false,
+      "label": "内容编号",
+      "config": {
+        "description": "自动生成的内容唯一标识符"
+      }
+    },
+    {
+      "name": "title",
+      "type": "text",
+      "required": true,
+      "label": "标题",
+      "config": {
+        "description": "内容资产标题",
+        "max_length": 200
+      }
+    },
+    {
+      "name": "content_type",
+      "type": "single_select",
+      "required": false,
+      "label": "内容类型",
+      "config": {
+        "description": "内容资产的类型分类",
+        "options": [
+          { "id": "blog", "label": "博客文章", "color": "#3B82F6" },
+          { "id": "landing_page", "label": "落地页", "color": "#10B981" },
+          { "id": "product_page", "label": "产品页", "color": "#F59E0B" },
+          { "id": "case_study", "label": "案例研究", "color": "#8B5CF6" },
+          { "id": "whitepaper", "label": "白皮书", "color": "#EC4899" },
+          { "id": "social_media", "label": "社交媒体", "color": "#06B6D4" },
+          { "id": "email", "label": "邮件", "color": "#84CC16" },
+          { "id": "video", "label": "视频", "color": "#F97316" },
+          { "id": "infographic", "label": "信息图", "color": "#6366F1" },
+          { "id": "other", "label": "其他", "color": "#94A3B8" }
+        ]
+      }
+    },
+    {
+      "name": "status",
+      "type": "single_select",
+      "required": false,
+      "label": "状态",
+      "config": {
+        "description": "内容资产的当前工作流状态",
+        "options": [
+          { "id": "draft", "label": "草稿", "color": "#94A3B8" },
+          { "id": "review", "label": "审核中", "color": "#F59E0B" },
+          { "id": "approved", "label": "已通过", "color": "#10B981" },
+          { "id": "published", "label": "已发布", "color": "#3B82F6" },
+          { "id": "needs_update", "label": "需更新", "color": "#F97316" },
+          { "id": "archived", "label": "已归档", "color": "#6B7280" }
+        ]
+      }
+    },
+    {
+      "name": "campaign_id",
+      "type": "link_records",
+      "required": false,
+      "label": "关联活动",
+      "config": {
+        "description": "关联到 campaigns 表的营销活动",
+        "linked_table": "campaigns",
+        "multi": false
+      }
+    },
+    {
+      "name": "target_keyword",
+      "type": "text",
+      "required": false,
+      "label": "目标关键词",
+      "config": {
+        "description": "SEO目标关键词",
+        "max_length": 500
+      }
+    },
+    {
+      "name": "seo_score",
+      "type": "number",
+      "required": false,
+      "label": "SEO评分",
+      "config": {
+        "description": "SEO优化评分（0-100分）",
+        "min": 0,
+        "max": 100,
+        "decimal_places": 0
+      }
+    },
+    {
+      "name": "word_count",
+      "type": "number",
+      "required": false,
+      "label": "字数",
+      "config": {
+        "description": "内容字数统计",
+        "min": 0,
+        "decimal_places": 0
+      }
+    },
+    {
+      "name": "author",
+      "type": "user",
+      "required": true,
+      "label": "作者",
+      "config": {
+        "description": "内容创作者",
+        "multi": false
+      }
+    },
+    {
+      "name": "reviewer",
+      "type": "user",
+      "required": false,
+      "label": "审核人",
+      "config": {
+        "description": "内容审核人员",
+        "multi": false
+      }
+    },
+    {
+      "name": "wp_post_id",
+      "type": "number",
+      "required": false,
+      "label": "WordPress文章ID",
+      "config": {
+        "description": "WordPress站点中的文章ID",
+        "decimal_places": 0
+      }
+    },
+    {
+      "name": "wp_url",
+      "type": "url",
+      "required": false,
+      "label": "WordPress链接",
+      "config": {
+        "description": "WordPress站点中的文章链接"
+      }
+    },
+    {
+      "name": "publish_date",
+      "type": "date",
+      "required": false,
+      "label": "发布日期",
+      "config": {
+        "description": "内容实际发布日期",
+        "format": "yyyy-MM-dd"
+      }
+    },
+    {
+      "name": "scheduled_date",
+      "type": "date",
+      "required": false,
+      "label": "计划日期",
+      "config": {
+        "description": "内容计划发布日期",
+        "format": "yyyy-MM-dd"
+      }
+    },
+    {
+      "name": "meta_title",
+      "type": "text",
+      "required": false,
+      "label": "Meta标题",
+      "config": {
+        "description": "SEO Meta Title",
+        "max_length": 70
+      }
+    },
+    {
+      "name": "meta_description",
+      "type": "multiline_text",
+      "required": false,
+      "label": "Meta描述",
+      "config": {
+        "description": "SEO Meta Description（建议120-160字符）",
+        "max_length": 320
+      }
+    },
+    {
+      "name": "schema_type",
+      "type": "single_select",
+      "required": false,
+      "label": "Schema类型",
+      "config": {
+        "description": "结构化数据类型",
+        "options": [
+          { "id": "article", "label": "Article", "color": "#3B82F6" },
+          { "id": "faq", "label": "FAQ", "color": "#10B981" },
+          { "id": "howto", "label": "HowTo", "color": "#F59E0B" },
+          { "id": "product", "label": "Product", "color": "#8B5CF6" },
+          { "id": "none", "label": "None", "color": "#94A3B8" }
+        ]
+      }
+    },
+    {
+      "name": "featured_image",
+      "type": "attachment",
+      "required": false,
+      "label": "特色图片",
+      "config": {
+        "description": "内容特色/封面图片"
+      }
+    },
+    {
+      "name": "traffic",
+      "type": "number",
+      "required": false,
+      "label": "流量",
+      "config": {
+        "description": "页面访问量",
+        "min": 0,
+        "decimal_places": 0
+      }
+    },
+    {
+      "name": "conversions",
+      "type": "number",
+      "required": false,
+      "label": "转化数",
+      "config": {
+        "description": "内容带来的转化次数",
+        "min": 0,
+        "decimal_places": 0
+      }
+    },
+    {
+      "name": "engagement",
+      "type": "number",
+      "required": false,
+      "label": "互动量",
+      "config": {
+        "description": "互动次数（评论、分享、点赞等）",
+        "min": 0,
+        "decimal_places": 0
+      }
+    }
+  ],
+  "views": [
+    {
+      "name": "全部内容",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "_id", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "展示所有内容资产的网格视图",
+        "visible_fields": ["_id", "title", "content_type", "status", "author", "scheduled_date", "seo_score", "traffic"]
+      }
+    },
+    {
+      "name": "内容日历",
+      "type": "calendar",
+      "filter": [
+        { "field": "scheduled_date", "operator": "is_not_empty" }
+      ],
+      "sort": [],
+      "group": null,
+      "config": {
+        "description": "以日历形式展示内容计划排期",
+        "date_field": "scheduled_date",
+        "display_field": "title",
+        "color_field": "content_type",
+        "default_view": "month"
+      }
+    },
+    {
+      "name": "看板",
+      "type": "kanban",
+      "filter": [],
+      "sort": [
+        { "field": "scheduled_date", "direction": "asc" }
+      ],
+      "group": {
+        "field": "status",
+        "type": "single_select"
+      },
+      "config": {
+        "description": "按状态分组管理内容工作流"
+      }
+    },
+    {
+      "name": "SEO优化",
+      "type": "grid",
+      "filter": [
+        { "field": "seo_score", "operator": "is_less_than", "value": 70 }
+      ],
+      "sort": [
+        { "field": "seo_score", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选SEO评分低于70分的内容，优化优先级排序",
+        "visible_fields": ["_id", "title", "seo_score", "target_keyword", "meta_title", "meta_description", "schema_type", "traffic"]
+      }
+    },
+    {
+      "name": "表现最佳",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "traffic", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "按流量降序排列，识别表现最佳的内容",
+        "visible_fields": ["_id", "title", "content_type", "status", "traffic", "conversions", "engagement", "seo_score"]
+      }
+    },
+    {
+      "name": "按类型",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "seo_score", "direction": "desc" }
+      ],
+      "group": {
+        "field": "content_type",
+        "type": "single_select"
+      },
+      "config": {
+        "description": "按内容类型分组查看所有内容",
+        "visible_fields": ["_id", "title", "status", "author", "publish_date", "seo_score", "traffic", "conversions"]
+      }
+    }
+  ]
+}

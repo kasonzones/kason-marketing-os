@@ -1,0 +1,246 @@
+{
+  "table": {
+    "name": "workflow_log",
+    "label": "工作流日志",
+    "description": "记录所有自动化工作流的执行情况，包括成功/失败状态、耗时、输入输出等详细日志信息"
+  },
+  "fields": [
+    {
+      "name": "_id",
+      "type": "autonumber",
+      "required": false,
+      "label": "日志编号",
+      "config": {
+        "description": "自动生成的日志记录唯一标识符"
+      }
+    },
+    {
+      "name": "workflow_name",
+      "type": "text",
+      "required": true,
+      "label": "工作流名称",
+      "config": {
+        "description": "工作流的名称标识",
+        "max_length": 200
+      }
+    },
+    {
+      "name": "trigger_type",
+      "type": "single_select",
+      "required": false,
+      "label": "触发类型",
+      "config": {
+        "description": "工作流的触发方式",
+        "options": [
+          { "id": "webhook", "label": "webhook", "color": "#3B82F6" },
+          { "id": "schedule", "label": "schedule", "color": "#10B981" },
+          { "id": "manual", "label": "manual", "color": "#F59E0B" },
+          { "id": "record_change", "label": "record_change", "color": "#8B5CF6" },
+          { "id": "button", "label": "button", "color": "#EC4899" }
+        ]
+      }
+    },
+    {
+      "name": "status",
+      "type": "single_select",
+      "required": false,
+      "label": "执行状态",
+      "config": {
+        "description": "工作流执行结果状态",
+        "options": [
+          { "id": "success", "label": "success", "color": "#10B981" },
+          { "id": "failed", "label": "failed", "color": "#EF4444" },
+          { "id": "running", "label": "running", "color": "#3B82F6" },
+          { "id": "pending", "label": "pending", "color": "#94A3B8" }
+        ]
+      }
+    },
+    {
+      "name": "start_time",
+      "type": "datetime",
+      "required": true,
+      "label": "开始时间",
+      "config": {
+        "description": "工作流开始执行的时间",
+        "format": "yyyy-MM-dd HH:mm:ss"
+      }
+    },
+    {
+      "name": "end_time",
+      "type": "datetime",
+      "required": false,
+      "label": "结束时间",
+      "config": {
+        "description": "工作流执行结束的时间",
+        "format": "yyyy-MM-dd HH:mm:ss"
+      }
+    },
+    {
+      "name": "duration_ms",
+      "type": "number",
+      "required": false,
+      "label": "耗时(毫秒)",
+      "config": {
+        "description": "工作流执行耗时（毫秒）",
+        "min": 0,
+        "decimal_places": 0
+      }
+    },
+    {
+      "name": "skill_used",
+      "type": "text",
+      "required": false,
+      "label": "使用技能",
+      "config": {
+        "description": "工作流调用使用的技能名称",
+        "max_length": 200
+      }
+    },
+    {
+      "name": "input_params",
+      "type": "multiline_text",
+      "required": false,
+      "label": "输入参数",
+      "config": {
+        "description": "工作流执行的输入参数（JSON格式）"
+      }
+    },
+    {
+      "name": "output_result",
+      "type": "multiline_text",
+      "required": false,
+      "label": "输出结果",
+      "config": {
+        "description": "工作流执行的输出结果"
+      }
+    },
+    {
+      "name": "error_message",
+      "type": "multiline_text",
+      "required": false,
+      "label": "错误信息",
+      "config": {
+        "description": "工作流执行失败时的错误信息"
+      }
+    },
+    {
+      "name": "campaign_id",
+      "type": "link_records",
+      "required": false,
+      "label": "关联活动",
+      "config": {
+        "description": "关联到 campaigns 表的营销活动",
+        "linked_table": "campaigns",
+        "multi": false
+      }
+    },
+    {
+      "name": "task_id",
+      "type": "link_records",
+      "required": false,
+      "label": "关联任务",
+      "config": {
+        "description": "关联到 tasks 表的具体任务",
+        "linked_table": "tasks",
+        "multi": false
+      }
+    },
+    {
+      "name": "triggered_by",
+      "type": "user",
+      "required": false,
+      "label": "触发者",
+      "config": {
+        "description": "手动触发工作流的用户",
+        "multi": false
+      }
+    },
+    {
+      "name": "retry_count",
+      "type": "number",
+      "required": false,
+      "label": "重试次数",
+      "config": {
+        "description": "工作流执行失败后的重试次数",
+        "min": 0,
+        "decimal_places": 0
+      }
+    }
+  ],
+  "views": [
+    {
+      "name": "全部日志",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "start_time", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "按开始时间降序展示所有工作流执行日志",
+        "visible_fields": ["_id", "workflow_name", "trigger_type", "status", "start_time", "duration_ms", "skill_used", "retry_count"]
+      }
+    },
+    {
+      "name": "失败记录",
+      "type": "grid",
+      "filter": [
+        { "field": "status", "operator": "is", "value": "failed" }
+      ],
+      "sort": [
+        { "field": "start_time", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选所有失败的工作流记录，用于排查问题",
+        "visible_fields": ["_id", "workflow_name", "trigger_type", "start_time", "error_message", "retry_count", "triggered_by", "campaign_id", "task_id"]
+      }
+    },
+    {
+      "name": "慢查询",
+      "type": "grid",
+      "filter": [
+        { "field": "duration_ms", "operator": "is_greater_than", "value": 30000 }
+      ],
+      "sort": [
+        { "field": "duration_ms", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选耗时超过30秒的工作流，方便性能优化",
+        "visible_fields": ["_id", "workflow_name", "trigger_type", "status", "start_time", "duration_ms", "skill_used", "input_params"]
+      }
+    },
+    {
+      "name": "今日日志",
+      "type": "grid",
+      "filter": [
+        { "field": "start_time", "operator": "is_in", "value": "today" }
+      ],
+      "sort": [
+        { "field": "start_time", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "仅显示今日的工作流执行日志",
+        "visible_fields": ["_id", "workflow_name", "trigger_type", "status", "start_time", "end_time", "duration_ms", "skill_used"]
+      }
+    },
+    {
+      "name": "按工作流",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "start_time", "direction": "desc" }
+      ],
+      "group": {
+        "field": "workflow_name",
+        "type": "text"
+      },
+      "config": {
+        "description": "按工作流名称分组，查看每个工作流的执行历史",
+        "visible_fields": ["_id", "workflow_name", "trigger_type", "status", "start_time", "duration_ms", "skill_used", "error_message"]
+      }
+    }
+  ]
+}

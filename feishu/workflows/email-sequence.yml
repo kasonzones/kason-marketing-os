@@ -1,0 +1,439 @@
+# ============================================================
+# 飞书工作流配置指南：邮件序列触发流程
+# ============================================================
+# 适用模块：飞书多维表格自动化 (Feishu Bitable Automation)
+# 创建方式：飞书 → 多维表格 → 自动化 → 新建工作流
+# ============================================================
+
+workflow:
+  name: "邮件序列触发流程"
+  description: >
+    当线索记录的生命周期阶段变更为"MQL"（营销合格线索）时，自动触发
+    邮件培育序列：根据线索来源和行业选择邮件模板，发送第一封邮件，
+    创建后续邮件的跟进任务，更新线索联系状态和活动计数。
+
+# ============================================================
+# 一、触发器配置
+# ============================================================
+trigger:
+  type: "记录变更触发"
+  config:
+    table_name: "线索管理表"
+    trigger_event: "修改记录"
+    conditions:
+      - field: "生命周期阶段"
+        operator: "变更为"
+        value: "MQL"  # Marketing Qualified Lead
+    watch_fields: ["生命周期阶段"]
+    note: >
+      仅在线索阶段从非MQL变为MQL时触发，避免重复处理。
+      确保生命周期阶段使用单选字段类型。
+
+# ============================================================
+# 二、前置准备（飞书权限要求）
+# ============================================================
+permissions:
+  - "多维表格：读取记录"             # 读取线索记录
+  - "多维表格：修改记录"             # 更新线索记录
+  - "多维表格：创建记录"             # 在任务表中创建跟进任务
+  - "调用 Webhook"                  # 调用邮件平台 API
+  - "消息推送：发送飞书消息"        # 错误通知
+
+# ============================================================
+# 三、邮件序列模板规则表
+# ============================================================
+email_sequence_rules:
+  description: >
+    根据线索来源和行业自动选择对应的邮件序列模板。
+    本规则表需在飞书工作流中通过"条件分支"实现。
+  templates:
+    科技互联网_广告来源:
+      template_id: "tech_ads_sequence_v2"
+      description: "适合科技行业广告来源线索"
+      emails:
+        - sequence: 1
+          subject: "发现{{公司名称}}可能需要我们的解决方案"
+          send_delay: "立即发送"
+          content_type: "案例研究 + 产品介绍"
+        - sequence: 2
+          subject: "{{联系人姓名}}，看看同行是怎么做的"
+          send_delay: "+3 天"
+          content_type: "客户案例 + ROI 数据"
+        - sequence: 3
+          subject: "为您准备了专属演示"
+          send_delay: "+7 天"
+          content_type: "产品演示邀约"
+        - sequence: 4
+          subject: "最后一次联系 - {{公司名称}}"
+          send_delay: "+14 天"
+          content_type: "限时优惠 + 最后跟进"
+    科技互联网_表单来源:
+      template_id: "tech_form_sequence_v2"
+      emails:
+        - sequence: 1
+          subject: "感谢{{联系人姓名}}的关注，这是您需要的资料"
+          send_delay: "立即发送"
+          content_type: "资料交付 + 解决方案"
+        - sequence: 2
+          subject: "{{公司名称}}相关的最佳实践"
+          send_delay: "+5 天"
+          content_type: "行业报告 + 最佳实践"
+        - sequence: 3
+          subject: "已有 {{X}} 家科技企业选择了我们"
+          send_delay: "+10 天"
+          content_type: "社会证明 + 案例"
+        - sequence: 4
+          subject: "我们能为{{公司名称}}做什么？"
+          send_delay: "+17 天"
+          content_type: "定制方案邀约"
+    通用_默认模板:
+      template_id: "general_nurturing_v1"
+      description: "未匹配特定规则时的默认模板"
+      emails:
+        - sequence: 1
+          subject: "{{公司名称}}，欢迎了解我们的解决方案"
+          send_delay: "立即发送"
+        - sequence: 2
+          subject: "更多资源推荐给{{公司名称}}"
+          send_delay: "+3 天"
+        - sequence: 3
+          subject: "{{联系人姓名}}，想了解一下您的想法"
+          send_delay: "+7 天"
+        - sequence: 4
+          subject: "{{公司名称}}的专属优惠"
+          send_delay: "+14 天"
+
+# ============================================================
+# 四、步骤详细配置
+# ============================================================
+
+steps:
+
+  # --- 步骤 1：检查邮箱是否存在 ---
+  - step: 1
+    name: "检查邮箱是否有效"
+    action_type: "条件判断"
+    config:
+      condition:
+        type: "字段非空"
+        field: "邮箱"
+      branch_when_true:
+        action: "继续执行后续步骤"
+      branch_when_false:
+        action: "终止流程"
+        log_message: "线索无邮箱地址，无法启动邮件序列"
+        update_record:
+          table: "线索管理表"
+          record_source: "触发记录"
+          field_updates:
+            - field: "邮件序列状态"
+              value: "跳过（无邮箱）"
+
+  # --- 步骤 2：确定邮件序列模板 ---
+  - step: 2
+    name: "根据来源和行业选择邮件序列"
+    action_type: "多条件分支"  # 飞书自动化中创建多个条件分支
+    config:
+      branches:
+        # 分支1：科技/互联网 + 广告来源
+        - condition:
+            - field: "行业"
+              operator: "等于"
+              value: "科技/互联网"
+              logic: "AND"
+            - field: "来源渠道"
+              operator: "包含"
+              value: "广告"
+          template_id: "tech_ads_sequence_v2"
+        # 分支2：科技/互联网 + 表单来源
+        - condition:
+            - field: "行业"
+              operator: "等于"
+              value: "科技/互联网"
+              logic: "AND"
+            - field: "来源渠道"
+              operator: "包含"
+              value: "表单"
+          template_id: "tech_form_sequence_v2"
+        # 可以继续添加更多行业/来源组合...
+        # 分支3：金融行业
+        - condition:
+            - field: "行业"
+              operator: "等于"
+              value: "金融/保险"
+          template_id: "finance_nurturing_v1"
+        # 分支4：制造业
+        - condition:
+            - field: "行业"
+              operator: "等于"
+              value: "制造业"
+          template_id: "manufacturing_nurturing_v1"
+        # 分支5：医疗健康
+        - condition:
+            - field: "行业"
+              operator: "等于"
+              value: "医疗/健康"
+          template_id: "healthcare_nurturing_v1"
+      default_template: "general_nurturing_v1"  # 无匹配时使用
+      output_variable: "selected_template"
+
+  # --- 步骤 3：发送第一封邮件 ---
+  - step: 3
+    name: "发送邮件序列第1封"
+    action_type: "调用Webhook"
+    config:
+      method: "POST"
+      url: "https://your-email-platform.com/api/send-sequence-email"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer {{EMAIL_API_SECRET_TOKEN}}"
+      body_type: "JSON"
+      body:
+        recipient:
+          email: "{{邮箱}}"
+          name: "{{联系人姓名}}"
+          company: "{{公司名称}}"
+        sequence:
+          template_id: "{{selected_template}}"
+          step: 1  # 第1封
+        variables:
+          contact_name: "{{联系人姓名}}"
+          company_name: "{{公司名称}}"
+          industry: "{{行业}}"
+          source: "{{来源渠道}}"
+          job_title: "{{职位}}"
+          demand_description: "{{需求描述}}"
+        tracking:
+          campaign_id: "{{关联活动ID}}"
+          lead_id: "{{当前记录.记录ID}}"
+          sequence_name: "MQL_培育"
+          step_number: 1
+        options:
+          track_opens: true
+          track_clicks: true
+          add_utm_params: true
+      timeout_seconds: 20
+      retry:
+        max_retries: 2
+        retry_delay_seconds: 3
+      response_mapping:
+        email_send_status: "{{response.body.status}}"
+        email_message_id: "{{response.body.message_id}}"
+    error_handling:
+      on_error: "记录发送失败，但不阻塞后续步骤"
+
+  # --- 步骤 4：创建后续跟进邮件任务 ---
+  - step: 4
+    name: "创建邮件序列跟进任务"
+    action_type: "批量创建记录"  # 一次创建多个任务
+    config:
+      table: "任务管理表"
+      multiple_records:
+        # 第2封邮件任务（+3天）
+        - field_values:
+            - field: "任务标题"
+              value: "邮件序列-第2封 - {{公司名称}} ({{联系人姓名}})"
+            - field: "任务类型"
+              value: "邮件跟进"
+            - field: "优先级"
+              value: "P2"
+            - field: "负责人"
+              value: "{{负责人}}"
+            - field: "截止日期"
+              value: "{{DATE_ADD(NOW(), 3, 'day')}}"
+            - field: "关联客户"
+              value: "{{公司名称}}"
+            - field: "关联线索ID"
+              value: "{{当前记录.记录ID}}"
+            - field: "邮件序列"
+              value: "{{selected_template}} / 第2封"
+            - field: "任务描述"
+              value: "为线索 {{公司名称}} - {{联系人姓名}} 发送邮件序列第2封\n收件人: {{邮箱}}\n模板: {{selected_template}}"
+            - field: "状态"
+              value: "待处理"
+            - field: "创建日期"
+              value: "{{NOW()}}"
+        # 第3封邮件任务（+7天）
+        - field_values:
+            - field: "任务标题"
+              value: "邮件序列-第3封 - {{公司名称}} ({{联系人姓名}})"
+            - field: "任务类型"
+              value: "邮件跟进"
+            - field: "优先级"
+              value: "P2"
+            - field: "负责人"
+              value: "{{负责人}}"
+            - field: "截止日期"
+              value: "{{DATE_ADD(NOW(), 7, 'day')}}"
+            - field: "关联客户"
+              value: "{{公司名称}}"
+            - field: "关联线索ID"
+              value: "{{当前记录.记录ID}}"
+            - field: "邮件序列"
+              value: "{{selected_template}} / 第3封"
+            - field: "任务描述"
+              value: "为线索 {{公司名称}} - {{联系人姓名}} 发送邮件序列第3封\n收件人: {{邮箱}}\n模板: {{selected_template}}"
+            - field: "状态"
+              value: "待处理"
+            - field: "创建日期"
+              value: "{{NOW()}}"
+        # 第4封邮件任务（+14天）
+        - field_values:
+            - field: "任务标题"
+              value: "邮件序列-第4封(终) - {{公司名称}} ({{联系人姓名}})"
+            - field: "任务类型"
+              value: "邮件跟进"
+            - field: "优先级"
+              value: "P3"
+            - field: "负责人"
+              value: "{{负责人}}"
+            - field: "截止日期"
+              value: "{{DATE_ADD(NOW(), 14, 'day')}}"
+            - field: "关联客户"
+              value: "{{公司名称}}"
+            - field: "关联线索ID"
+              value: "{{当前记录.记录ID}}"
+            - field: "邮件序列"
+              value: "{{selected_template}} / 第4封(终)"
+            - field: "任务描述"
+              value: "为线索 {{公司名称}} - {{联系人姓名}} 发送最后一封邮件\n收件人: {{邮箱}}\n模板: {{selected_template}}\n\n提示：发送前检查此线索是否有互动记录（打开/点击），若完全无互动可调整邮件主题和内容。"
+            - field: "状态"
+              value: "待处理"
+            - field: "创建日期"
+              value: "{{NOW()}}"
+      note: >
+        飞书可能不支持批量创建，若遇到限制请改用：
+        - 方案A：创建3个独立的"创建记录"操作
+        - 方案B：使用循环创建（更灵活）
+        推荐使用方案A（3个独立操作），更稳定。
+
+  # --- 步骤 5：更新线索记录 ---
+  - step: 5
+    name: "更新线索联系状态"
+    action_type: "修改记录"
+    config:
+      table: "线索管理表"
+      record_source: "触发记录"
+      field_updates:
+        - field: "上次联系时间"
+          value: "{{NOW()}}"
+        - field: "下次跟进时间"
+          value: "{{DATE_ADD(NOW(), 3, 'day')}}"  # 与第2封邮件对齐
+        - field: "邮件序列状态"
+          value: "进行中"
+        - field: "邮件序列模板"
+          value: "{{selected_template}}"
+        - field: "已发送邮件数"
+          value: 1
+        - field: "邮件序列开始时间"
+          value: "{{NOW()}}"
+        - field: "最后邮件ID"
+          value: "{{email_message_id}}"
+
+  # --- 步骤 6：更新活动线索计数 ---
+  - step: 6
+    name: "更新关联活动的线索计数"
+    action_type: "条件分支 → 修改记录"
+    config:
+      condition:
+        type: "字段非空"
+        field: "{{关联活动ID}}"
+      branch_when_true:
+        action_type: "修改记录"
+        config:
+          table: "活动管理表"
+          record_match:
+            match_field: "活动ID"
+            match_value: "{{关联活动ID}}"
+          field_updates:
+            - field: "MQL数量"
+              value: "{{MQL数量 + 1}}"  # 累加
+              mode: "累加"
+            - field: "最后MQL转化时间"
+              value: "{{NOW()}}"
+      branch_when_false:
+        step: "skip"
+        description: "无关联活动ID，跳过计数更新"
+
+  # --- 步骤 7：记录工作流日志 ---
+  - step: 7
+    name: "记录到工作流日志表"
+    action_type: "创建记录"
+    config:
+      table: "工作流日志表"
+      field_values:
+        - field: "工作流名称"
+          value: "邮件序列触发流程"
+        - field: "触发时间"
+          value: "{{NOW()}}"
+        - field: "操作类型"
+          value: "邮件序列"
+        - field: "关联记录ID"
+          value: "{{当前记录.记录ID}}"
+        - field: "关联线索"
+          value: "{{公司名称}} - {{联系人姓名}}"
+        - field: "执行步骤"
+          value: "步骤1(邮箱检查) → 步骤2(模板选择) → 步骤3(发送邮件) → 步骤4(创建任务) → 步骤5(更新线索) → 步骤6(活动计数)"
+        - field: "执行结果"
+          value: "成功"
+        - field: "邮件序列模板"
+          value: "{{selected_template}}"
+        - field: "邮件状态"
+          value: "{{email_send_status}}"
+        - field: "收件邮箱"
+          value: "{{邮箱}}"
+
+# ============================================================
+# 五、错误处理说明
+# ============================================================
+error_handling:
+  global:
+    on_no_email:
+      - "标记线索为'跳过（无邮箱）'"
+      - "在日志中记录"
+      - "正常终止，不视为错误"
+    on_email_platform_unavailable:
+      - "重试 2 次，间隔 3 秒"
+      - "失败后记录日志，标记'邮件发送失败'"
+      - "仍创建后续任务（可人工介入发送）"
+    on_template_not_found:
+      - "回退到默认模板 'general_nurturing_v1'"
+      - "日志中记录模板回退信息"
+    on_duplicate_trigger:
+      - "检查是否已有进行中的邮件序列（邮件序列状态 = '进行中'）"
+      - "若有，则跳过不重复触发"
+  fallback_notification:
+    title: "⚠️ 邮件序列触发异常"
+    message: "线索\"{{公司名称}}\"的邮件序列触发失败。\n步骤：{{failed_step}}\n错误：{{error_message}}"
+    recipients: ["系统管理员", "{{负责人}}"]
+
+# ============================================================
+# 六、邮件序列状态流转
+# ============================================================
+sequence_state_machine:
+  states:
+    - 未启动: "生命周期阶段非MQL"
+    - 进行中: "已发送第1封，后续邮件待执行"
+    - 已完成: "4封邮件全部发送完毕"
+    - 已退订: "线索取消订阅"
+    - 跳过无邮箱: "无有效邮箱地址"
+  state_field: "邮件序列状态"  # 线索表中的状态字段
+  note: >
+    后续可创建另一个自动化流程来监听第2-4封邮件的执行，
+    当任务表中的邮件跟进任务被标记为"已完成"时，自动发送对应邮件。
+
+# ============================================================
+# 七、测试验证清单
+# ============================================================
+test_checklist:
+  - "将一条线索的生命周期阶段手动改为'MQL'"
+  - "验证邮箱检查通过，流程继续执行"
+  - "验证模板选择是否正确（根据行业和来源）"
+  - "检查邮件平台是否收到第1封邮件请求"
+  - "检查任务表中是否有3条邮件跟进任务（+3天、+7天、+14天）"
+  - "验证线索记录的'上次联系时间'和'下次跟进时间'是否正确"
+  - "验证关联活动的MQL数量是否+1"
+  - "检查工作流日志表记录是否完整"
+  - "测试无邮箱的线索：确认流程自动终止并标记"
+  - "测试无关联活动的线索：确认跳过步骤6"
+  - "测试重复触发：确认不会为同一线索创建重复序列"

@@ -1,0 +1,62 @@
+{
+  "tables": [
+    {
+      "name": "campaigns", "label": "营销活动",
+      "create_order": 1,
+      "fields_file": "campaigns.json"
+    },
+    {
+      "name": "content", "label": "内容资产",
+      "create_order": 2,
+      "fields_file": "content.json",
+      "relations": [
+        {"foreign_table": "campaigns", "field": "campaign_id", "type": "many_to_one"}
+      ]
+    },
+    {
+      "name": "leads", "label": "线索管理",
+      "create_order": 3,
+      "fields_file": "leads.json",
+      "relations": [
+        {"foreign_table": "campaigns", "field": "campaign_id", "type": "many_to_one"}
+      ]
+    },
+    {
+      "name": "tasks", "label": "任务管理",
+      "create_order": 4,
+      "fields_file": "tasks.json",
+      "relations": [
+        {"foreign_table": "campaigns", "field": "campaign_id", "type": "many_to_one"},
+        {"foreign_table": "skills_registry", "field": "skill_used", "type": "many_to_one"},
+        {"foreign_table": "tasks", "field": "dependencies", "type": "self_reference"}
+      ]
+    },
+    {
+      "name": "analytics", "label": "数据指标",
+      "create_order": 5,
+      "fields_file": "analytics.json",
+      "relations": [
+        {"foreign_table": "campaigns", "field": "campaign_id", "type": "many_to_one"}
+      ]
+    },
+    {
+      "name": "skills_registry", "label": "技能注册表",
+      "create_order": 6,
+      "fields_file": "skills_registry.json"
+    },
+    {
+      "name": "workflow_log", "label": "工作流日志",
+      "create_order": 7,
+      "fields_file": "workflow_log.json",
+      "relations": [
+        {"foreign_table": "campaigns", "field": "campaign_id", "type": "many_to_one"},
+        {"foreign_table": "tasks", "field": "task_id", "type": "many_to_one"}
+      ]
+    }
+  ],
+  "global_views": [
+    {"name": "📊 营销仪表盘", "type": "dashboard", "tables": ["campaigns", "content", "leads", "analytics"]},
+    {"name": "📋 工作台", "type": "dashboard", "tables": ["tasks", "campaigns", "workflow_log"]},
+    {"name": "🔍 技能中心", "type": "dashboard", "tables": ["skills_registry", "workflow_log"]}
+  ]
+}

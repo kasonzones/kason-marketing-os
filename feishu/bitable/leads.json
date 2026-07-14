@@ -1,0 +1,350 @@
+{
+  "table": {
+    "name": "leads",
+    "label": "线索管理",
+    "description": "跟踪潜在客户从线索到成交的完整生命周期，管理联系记录、评分和销售管道"
+  },
+  "fields": [
+    {
+      "name": "_id",
+      "type": "autonumber",
+      "required": false,
+      "label": "线索编号",
+      "config": {
+        "description": "自动生成的线索唯一标识符"
+      }
+    },
+    {
+      "name": "company_name",
+      "type": "text",
+      "required": false,
+      "label": "公司名称",
+      "config": {
+        "description": "潜在客户公司名称",
+        "max_length": 200
+      }
+    },
+    {
+      "name": "contact_name",
+      "type": "text",
+      "required": true,
+      "label": "联系人",
+      "config": {
+        "description": "联系人或决策人姓名",
+        "max_length": 100
+      }
+    },
+    {
+      "name": "email",
+      "type": "email",
+      "required": false,
+      "label": "邮箱",
+      "config": {
+        "description": "联系人电子邮箱地址"
+      }
+    },
+    {
+      "name": "phone",
+      "type": "phone",
+      "required": false,
+      "label": "电话",
+      "config": {
+        "description": "联系人电话号码"
+      }
+    },
+    {
+      "name": "source",
+      "type": "single_select",
+      "required": false,
+      "label": "来源渠道",
+      "config": {
+        "description": "线索来源渠道",
+        "options": [
+          { "id": "website_form", "label": "官网表单", "color": "#3B82F6" },
+          { "id": "landing_page", "label": "落地页", "color": "#10B981" },
+          { "id": "advertising", "label": "广告", "color": "#F59E0B" },
+          { "id": "email_campaign", "label": "邮件", "color": "#8B5CF6" },
+          { "id": "social_media", "label": "社交媒体", "color": "#EC4899" },
+          { "id": "exhibition", "label": "展会", "color": "#F97316" },
+          { "id": "referral", "label": "推荐", "color": "#06B6D4" },
+          { "id": "other", "label": "其他", "color": "#94A3B8" }
+        ]
+      }
+    },
+    {
+      "name": "campaign_id",
+      "type": "link_records",
+      "required": false,
+      "label": "关联活动",
+      "config": {
+        "description": "关联到 campaigns 表的营销活动",
+        "linked_table": "campaigns",
+        "multi": false
+      }
+    },
+    {
+      "name": "lead_score",
+      "type": "number",
+      "required": false,
+      "label": "线索评分",
+      "config": {
+        "description": "线索质量评分（0-100分）",
+        "min": 0,
+        "max": 100,
+        "decimal_places": 0
+      }
+    },
+    {
+      "name": "lifecycle_stage",
+      "type": "single_select",
+      "required": false,
+      "label": "生命周期阶段",
+      "config": {
+        "description": "线索在客户旅程中的当前阶段",
+        "options": [
+          { "id": "subscriber", "label": "订阅者", "color": "#94A3B8" },
+          { "id": "lead", "label": "线索", "color": "#3B82F6" },
+          { "id": "mql", "label": "MQL", "color": "#6366F1" },
+          { "id": "sql", "label": "SQL", "color": "#8B5CF6" },
+          { "id": "opportunity", "label": "商机", "color": "#F59E0B" },
+          { "id": "customer", "label": "客户", "color": "#10B981" },
+          { "id": "evangelist", "label": "品牌传播者", "color": "#EC4899" }
+        ]
+      }
+    },
+    {
+      "name": "status",
+      "type": "single_select",
+      "required": false,
+      "label": "跟进状态",
+      "config": {
+        "description": "当前销售跟进状态",
+        "options": [
+          { "id": "new", "label": "新建", "color": "#94A3B8" },
+          { "id": "contacted", "label": "已联系", "color": "#3B82F6" },
+          { "id": "replied", "label": "已回复", "color": "#6366F1" },
+          { "id": "demo", "label": "演示中", "color": "#F59E0B" },
+          { "id": "quoting", "label": "报价中", "color": "#F97316" },
+          { "id": "won", "label": "已成交", "color": "#10B981" },
+          { "id": "lost", "label": "已流失", "color": "#EF4444" }
+        ]
+      }
+    },
+    {
+      "name": "industry",
+      "type": "single_select",
+      "required": false,
+      "label": "行业",
+      "config": {
+        "description": "客户所在行业分类",
+        "options": [
+          { "id": "gas_station", "label": "加油站", "color": "#3B82F6" },
+          { "id": "shopping_mall", "label": "商场", "color": "#10B981" },
+          { "id": "car_dealer", "label": "4S店", "color": "#F59E0B" },
+          { "id": "hotel", "label": "酒店", "color": "#8B5CF6" },
+          { "id": "parking_lot", "label": "停车场", "color": "#EC4899" },
+          { "id": "residential", "label": "住宅小区", "color": "#06B6D4" },
+          { "id": "independent_carwash", "label": "独立洗车店", "color": "#84CC16" },
+          { "id": "fleet", "label": "车队", "color": "#F97316" },
+          { "id": "other", "label": "其他", "color": "#94A3B8" }
+        ]
+      }
+    },
+    {
+      "name": "company_size",
+      "type": "single_select",
+      "required": false,
+      "label": "公司规模",
+      "config": {
+        "description": "客户公司规模",
+        "options": [
+          { "id": "small", "label": "小型", "color": "#3B82F6" },
+          { "id": "medium", "label": "中型", "color": "#F59E0B" },
+          { "id": "large", "label": "大型", "color": "#F97316" },
+          { "id": "enterprise", "label": "企业", "color": "#EF4444" }
+        ]
+      }
+    },
+    {
+      "name": "budget_range",
+      "type": "single_select",
+      "required": false,
+      "label": "预算范围",
+      "config": {
+        "description": "客户预算区间",
+        "options": [
+          { "id": "under_50k", "label": "<5万", "color": "#3B82F6" },
+          { "id": "50k_150k", "label": "5-15万", "color": "#10B981" },
+          { "id": "150k_300k", "label": "15-30万", "color": "#F59E0B" },
+          { "id": "over_300k", "label": ">30万", "color": "#EF4444" }
+        ]
+      }
+    },
+    {
+      "name": "interest_product",
+      "type": "multi_select",
+      "required": false,
+      "label": "感兴趣产品",
+      "config": {
+        "description": "客户感兴趣的产品/服务",
+        "options": [
+          { "id": "touchless_auto", "label": "全自动洗车机", "color": "#3B82F6" },
+          { "id": "tunnel_system", "label": "隧道式洗车机", "color": "#10B981" },
+          { "id": "self_service", "label": "自助洗车机", "color": "#F59E0B" },
+          { "id": "commercial_robot", "label": "商用洗车机器人", "color": "#8B5CF6" },
+          { "id": "water_recycling", "label": "水循环系统", "color": "#06B6D4" },
+          { "id": "payment_system", "label": "支付系统", "color": "#EC4899" },
+          { "id": "maintenance", "label": "维护服务", "color": "#84CC16" },
+          { "id": "franchise", "label": "加盟方案", "color": "#F97316" }
+        ]
+      }
+    },
+    {
+      "name": "pain_points",
+      "type": "multiline_text",
+      "required": false,
+      "label": "痛点/需求",
+      "config": {
+        "description": "记录客户的痛点、需求和期望"
+      }
+    },
+    {
+      "name": "last_contact",
+      "type": "date",
+      "required": false,
+      "label": "上次联系日期",
+      "config": {
+        "description": "最近一次与客户联系的日期",
+        "format": "yyyy-MM-dd"
+      }
+    },
+    {
+      "name": "next_followup",
+      "type": "date",
+      "required": false,
+      "label": "下次跟进日期",
+      "config": {
+        "description": "计划下次联系客户的日期",
+        "format": "yyyy-MM-dd"
+      }
+    },
+    {
+      "name": "owner",
+      "type": "user",
+      "required": true,
+      "label": "负责人",
+      "config": {
+        "description": "负责该线索的销售/市场人员",
+        "multi": false
+      }
+    },
+    {
+      "name": "notes",
+      "type": "multiline_text",
+      "required": false,
+      "label": "备注",
+      "config": {
+        "description": "客户跟进备注和内部记录"
+      }
+    },
+    {
+      "name": "deal_value",
+      "type": "number",
+      "required": false,
+      "label": "预估成交金额",
+      "config": {
+        "description": "预期成交金额（元）",
+        "min": 0,
+        "decimal_places": 2
+      }
+    },
+    {
+      "name": "deal_probability",
+      "type": "progress",
+      "required": false,
+      "label": "成交概率",
+      "config": {
+        "description": "预估成交概率（0-100%）",
+        "min": 0,
+        "max": 100
+      }
+    }
+  ],
+  "views": [
+    {
+      "name": "全部线索",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "_id", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "展示所有线索的完整网格视图",
+        "visible_fields": ["_id", "company_name", "contact_name", "source", "lifecycle_stage", "status", "lead_score", "owner", "next_followup", "deal_value"]
+      }
+    },
+    {
+      "name": "高意向",
+      "type": "grid",
+      "filter": [
+        { "field": "lead_score", "operator": "is_greater_than_or_equal", "value": 70 }
+      ],
+      "sort": [
+        { "field": "lead_score", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选高评分线索（≥70分），优先跟进",
+        "visible_fields": ["_id", "company_name", "contact_name", "industry", "lead_score", "lifecycle_stage", "status", "deal_value", "owner"]
+      }
+    },
+    {
+      "name": "销售漏斗",
+      "type": "kanban",
+      "filter": [],
+      "sort": [
+        { "field": "lead_score", "direction": "desc" }
+      ],
+      "group": {
+        "field": "lifecycle_stage",
+        "type": "single_select"
+      },
+      "config": {
+        "description": "按生命周期阶段分组的销售漏斗视图"
+      }
+    },
+    {
+      "name": "待跟进",
+      "type": "grid",
+      "filter": [
+        { "field": "next_followup", "operator": "is_within", "value": "3_days" },
+        { "field": "status", "operator": "is_not", "value": "won" },
+        { "field": "status", "operator": "is_not", "value": "lost" }
+      ],
+      "sort": [
+        { "field": "next_followup", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选3天内需要跟进的线索",
+        "visible_fields": ["_id", "company_name", "contact_name", "phone", "email", "next_followup", "last_contact", "status", "owner"]
+      }
+    },
+    {
+      "name": "管道视图",
+      "type": "grid",
+      "filter": [
+        { "field": "status", "operator": "is_not", "value": "lost" }
+      ],
+      "sort": [
+        { "field": "deal_value", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "按预估成交金额降序排列的销售管道视图",
+        "visible_fields": ["_id", "company_name", "contact_name", "deal_value", "deal_probability", "lifecycle_stage", "status", "owner", "next_followup"]
+      }
+    }
+  ]
+}

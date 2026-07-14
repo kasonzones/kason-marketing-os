@@ -1,0 +1,223 @@
+{
+  "table": {
+    "name": "analytics",
+    "label": "数据指标",
+    "description": "记录和追踪各类营销数据指标，支持目标对比、趋势分析和异常监控"
+  },
+  "fields": [
+    {
+      "name": "_id",
+      "type": "autonumber",
+      "required": false,
+      "label": "数据编号",
+      "config": {
+        "description": "自动生成的数据记录唯一标识符"
+      }
+    },
+    {
+      "name": "date",
+      "type": "date",
+      "required": true,
+      "label": "日期",
+      "config": {
+        "description": "数据对应的日期",
+        "format": "yyyy-MM-dd"
+      }
+    },
+    {
+      "name": "metric_category",
+      "type": "single_select",
+      "required": false,
+      "label": "指标类别",
+      "config": {
+        "description": "数据指标所属类别",
+        "options": [
+          { "id": "traffic", "label": "流量", "color": "#3B82F6" },
+          { "id": "conversion", "label": "转化", "color": "#10B981" },
+          { "id": "revenue", "label": "营收", "color": "#F59E0B" },
+          { "id": "advertising", "label": "广告", "color": "#8B5CF6" },
+          { "id": "seo", "label": "SEO", "color": "#EC4899" },
+          { "id": "email", "label": "邮件", "color": "#06B6D4" },
+          { "id": "social", "label": "社交", "color": "#84CC16" },
+          { "id": "product", "label": "产品", "color": "#F97316" }
+        ]
+      }
+    },
+    {
+      "name": "metric_name",
+      "type": "text",
+      "required": true,
+      "label": "指标名称",
+      "config": {
+        "description": "指标的技术名称（如 traffic_organic、conversion_rate）",
+        "max_length": 100
+      }
+    },
+    {
+      "name": "metric_label",
+      "type": "text",
+      "required": true,
+      "label": "指标显示名",
+      "config": {
+        "description": "指标的友好显示名称（如 自然流量、转化率）",
+        "max_length": 100
+      }
+    },
+    {
+      "name": "metric_value",
+      "type": "number",
+      "required": true,
+      "label": "指标值",
+      "config": {
+        "description": "指标的实际数值",
+        "decimal_places": 2
+      }
+    },
+    {
+      "name": "metric_unit",
+      "type": "single_select",
+      "required": false,
+      "label": "单位",
+      "config": {
+        "description": "指标数值的单位",
+        "options": [
+          { "id": "times", "label": "次", "color": "#3B82F6" },
+          { "id": "people", "label": "人", "color": "#10B981" },
+          { "id": "yuan", "label": "元", "color": "#F59E0B" },
+          { "id": "percent", "label": "%", "color": "#8B5CF6" },
+          { "id": "count", "label": "个", "color": "#EC4899" },
+          { "id": "letter", "label": "封", "color": "#06B6D4" },
+          { "id": "article", "label": "条", "color": "#84CC16" }
+        ]
+      }
+    },
+    {
+      "name": "target_value",
+      "type": "number",
+      "required": false,
+      "label": "目标值",
+      "config": {
+        "description": "指标的目标/预算值",
+        "decimal_places": 2
+      }
+    },
+    {
+      "name": "previous_value",
+      "type": "number",
+      "required": false,
+      "label": "上期值",
+      "config": {
+        "description": "上一周期（如上月/去年同期）的值，用于对比分析",
+        "decimal_places": 2
+      }
+    },
+    {
+      "name": "campaign_id",
+      "type": "link_records",
+      "required": false,
+      "label": "关联活动",
+      "config": {
+        "description": "关联到 campaigns 表的营销活动",
+        "linked_table": "campaigns",
+        "multi": false
+      }
+    },
+    {
+      "name": "source",
+      "type": "text",
+      "required": false,
+      "label": "数据来源",
+      "config": {
+        "description": "数据获取来源（如 Google Analytics、飞书、百度统计）",
+        "max_length": 200
+      }
+    },
+    {
+      "name": "notes",
+      "type": "multiline_text",
+      "required": false,
+      "label": "备注",
+      "config": {
+        "description": "数据备注和说明"
+      }
+    }
+  ],
+  "views": [
+    {
+      "name": "全部数据",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "date", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "按日期降序展示所有指标数据",
+        "visible_fields": ["_id", "date", "metric_category", "metric_label", "metric_value", "metric_unit", "target_value", "source"]
+      }
+    },
+    {
+      "name": "趋势视图",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "date", "direction": "asc" }
+      ],
+      "group": {
+        "field": "metric_category",
+        "type": "single_select"
+      },
+      "config": {
+        "description": "按日期升序、按指标类别分组，用于观察趋势变化",
+        "visible_fields": ["_id", "date", "metric_name", "metric_label", "metric_value", "metric_unit", "target_value", "previous_value"]
+      }
+    },
+    {
+      "name": "KPI仪表盘",
+      "type": "grid",
+      "filter": [
+        { "field": "target_value", "operator": "is_greater_than", "value": 0 }
+      ],
+      "sort": [
+        { "field": "date", "direction": "desc" },
+        { "field": "metric_category", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选设有目标值的KPI指标，监控目标达成情况",
+        "visible_fields": ["_id", "date", "metric_label", "metric_value", "target_value", "metric_unit", "metric_category", "source"]
+      }
+    },
+    {
+      "name": "本月数据",
+      "type": "grid",
+      "filter": [
+        { "field": "date", "operator": "is_in", "value": "this_month" }
+      ],
+      "sort": [
+        { "field": "date", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "仅显示本月的数据记录",
+        "visible_fields": ["_id", "date", "metric_category", "metric_label", "metric_value", "metric_unit", "target_value", "source"]
+      }
+    },
+    {
+      "name": "异常指标",
+      "type": "grid",
+      "filter": [
+        { "field": "metric_value", "operator": "is_less_than", "field_ref": "target_value" },
+        { "field": "target_value", "operator": "is_greater_than", "value": 0 }
+      ],
+      "sort": [
+        { "field": "date", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选实际值低于目标值的异常指标，便于及时发现问题",
+        "visible_fields": ["_id", "date", "metric_label", "metric_value", "target_value", "metric_unit", "metric_category", "notes"]
+      }
+    }
+  ]
+}

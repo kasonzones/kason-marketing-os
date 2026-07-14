@@ -1,0 +1,261 @@
+{
+  "table": {
+    "name": "tasks",
+    "label": "任务管理",
+    "description": "管理营销团队的工作任务，包括内容创作、设计开发、SEO优化等各类任务的全生命周期"
+  },
+  "fields": [
+    {
+      "name": "_id",
+      "type": "autonumber",
+      "required": false,
+      "label": "任务编号",
+      "config": {
+        "description": "自动生成的任务唯一标识符"
+      }
+    },
+    {
+      "name": "task_name",
+      "type": "text",
+      "required": true,
+      "label": "任务名称",
+      "config": {
+        "description": "任务标题/名称",
+        "max_length": 200
+      }
+    },
+    {
+      "name": "task_type",
+      "type": "single_select",
+      "required": false,
+      "label": "任务类型",
+      "config": {
+        "description": "任务的类型分类",
+        "options": [
+          { "id": "content_creation", "label": "内容创作", "color": "#3B82F6" },
+          { "id": "design", "label": "设计", "color": "#10B981" },
+          { "id": "development", "label": "开发", "color": "#F59E0B" },
+          { "id": "seo", "label": "SEO", "color": "#8B5CF6" },
+          { "id": "ad_optimization", "label": "广告优化", "color": "#EC4899" },
+          { "id": "email_send", "label": "邮件发送", "color": "#06B6D4" },
+          { "id": "data_analysis", "label": "数据分析", "color": "#84CC16" },
+          { "id": "customer_followup", "label": "客户跟进", "color": "#F97316" },
+          { "id": "review", "label": "审核", "color": "#6366F1" },
+          { "id": "other", "label": "其他", "color": "#94A3B8" }
+        ]
+      }
+    },
+    {
+      "name": "status",
+      "type": "single_select",
+      "required": false,
+      "label": "状态",
+      "config": {
+        "description": "任务当前状态",
+        "options": [
+          { "id": "todo", "label": "待开始", "color": "#94A3B8" },
+          { "id": "in_progress", "label": "进行中", "color": "#3B82F6" },
+          { "id": "completed", "label": "已完成", "color": "#10B981" },
+          { "id": "cancelled", "label": "已取消", "color": "#6B7280" }
+        ]
+      }
+    },
+    {
+      "name": "priority",
+      "type": "single_select",
+      "required": false,
+      "label": "优先级",
+      "config": {
+        "description": "任务优先级",
+        "options": [
+          { "id": "p0", "label": "P0", "color": "#EF4444" },
+          { "id": "p1", "label": "P1", "color": "#F97316" },
+          { "id": "p2", "label": "P2", "color": "#3B82F6" },
+          { "id": "p3", "label": "P3", "color": "#94A3B8" }
+        ]
+      }
+    },
+    {
+      "name": "campaign_id",
+      "type": "link_records",
+      "required": false,
+      "label": "关联活动",
+      "config": {
+        "description": "关联到 campaigns 表的营销活动",
+        "linked_table": "campaigns",
+        "multi": false
+      }
+    },
+    {
+      "name": "assignee",
+      "type": "user",
+      "required": true,
+      "label": "负责人",
+      "config": {
+        "description": "任务执行人",
+        "multi": false
+      }
+    },
+    {
+      "name": "due_date",
+      "type": "date",
+      "required": true,
+      "label": "截止日期",
+      "config": {
+        "description": "任务截止日期",
+        "format": "yyyy-MM-dd"
+      }
+    },
+    {
+      "name": "estimated_hours",
+      "type": "number",
+      "required": false,
+      "label": "预估工时",
+      "config": {
+        "description": "预估完成所需工时（小时）",
+        "min": 0,
+        "decimal_places": 1
+      }
+    },
+    {
+      "name": "actual_hours",
+      "type": "number",
+      "required": false,
+      "label": "实际工时",
+      "config": {
+        "description": "实际花费工时（小时）",
+        "min": 0,
+        "decimal_places": 1
+      }
+    },
+    {
+      "name": "dependencies",
+      "type": "link_records",
+      "required": false,
+      "label": "依赖任务",
+      "config": {
+        "description": "前置依赖任务（自关联）",
+        "linked_table": "tasks",
+        "multi": true
+      }
+    },
+    {
+      "name": "skill_used",
+      "type": "link_records",
+      "required": false,
+      "label": "使用技能",
+      "config": {
+        "description": "关联到 skills_registry 表的技能",
+        "linked_table": "skills_registry",
+        "multi": true
+      }
+    },
+    {
+      "name": "description",
+      "type": "multiline_text",
+      "required": false,
+      "label": "任务描述",
+      "config": {
+        "description": "任务的详细描述和需求说明"
+      }
+    },
+    {
+      "name": "checklist",
+      "type": "multiline_text",
+      "required": false,
+      "label": "检查清单",
+      "config": {
+        "description": "任务完成的检查项清单"
+      }
+    },
+    {
+      "name": "result",
+      "type": "multiline_text",
+      "required": false,
+      "label": "任务结果",
+      "config": {
+        "description": "任务完成后的结果记录"
+      }
+    }
+  ],
+  "views": [
+    {
+      "name": "全部任务",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "due_date", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "按截止日期升序展示所有任务",
+        "visible_fields": ["_id", "task_name", "task_type", "priority", "status", "assignee", "due_date", "estimated_hours"]
+      }
+    },
+    {
+      "name": "我的任务",
+      "type": "grid",
+      "filter": [
+        { "field": "assignee", "operator": "is_me" },
+        { "field": "status", "operator": "is_not", "value": "completed" }
+      ],
+      "sort": [
+        { "field": "priority", "direction": "asc" },
+        { "field": "due_date", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "只显示当前登录用户的未完成任务",
+        "visible_fields": ["_id", "task_name", "task_type", "priority", "status", "due_date", "estimated_hours", "dependencies"]
+      }
+    },
+    {
+      "name": "逾期任务",
+      "type": "grid",
+      "filter": [
+        { "field": "due_date", "operator": "is_before", "value": "today" },
+        { "field": "status", "operator": "is_not", "value": "completed" },
+        { "field": "status", "operator": "is_not", "value": "cancelled" }
+      ],
+      "sort": [
+        { "field": "due_date", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选截止日期已过但未完成的任务",
+        "visible_fields": ["_id", "task_name", "priority", "assignee", "due_date", "status", "task_type"]
+      }
+    },
+    {
+      "name": "看板",
+      "type": "kanban",
+      "filter": [],
+      "sort": [
+        { "field": "priority", "direction": "asc" }
+      ],
+      "group": {
+        "field": "status",
+        "type": "single_select"
+      },
+      "config": {
+        "description": "按状态分组的看板视图，方便拖拽管理任务进度"
+      }
+    },
+    {
+      "name": "日历",
+      "type": "calendar",
+      "filter": [
+        { "field": "due_date", "operator": "is_not_empty" }
+      ],
+      "sort": [],
+      "group": null,
+      "config": {
+        "description": "以日历形式展示任务截止日期排期",
+        "date_field": "due_date",
+        "display_field": "task_name",
+        "color_field": "priority",
+        "default_view": "month"
+      }
+    }
+  ]
+}

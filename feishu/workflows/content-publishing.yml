@@ -1,0 +1,262 @@
+# ============================================================
+# 飞书工作流配置指南：内容发布自动化流程
+# ============================================================
+# 适用模块：飞书多维表格自动化 (Feishu Bitable Automation)
+# 创建方式：飞书 → 多维表格 → 自动化 → 新建工作流
+# ============================================================
+
+workflow:
+  name: "内容发布自动化流程"
+  description: >
+    当内容管理表中的内容记录状态变更为"已通过"时，自动执行发布流程：
+    调用 WordPress 发布接口、更新内容记录、SEO 不足时创建优化任务、
+    通知相关负责人、记录操作日志。
+
+# ============================================================
+# 一、触发器配置
+# ============================================================
+trigger:
+  type: "记录变更触发"  # 飞书自动化中的触发类型
+  config:
+    table_name: "内容管理表"  # 你的内容管理表格名称
+    trigger_event: "修改记录"
+    conditions:
+      - field: "状态"  # 状态字段名称（单选/文本字段）
+        operator: "变更为"  # 飞书中使用"变更为"或"等于"
+        value: "已通过"
+    watch_fields: ["状态"]  # 只监听状态字段变化
+
+# ============================================================
+# 二、前置准备（飞书权限要求）
+# ============================================================
+permissions:
+  - "多维表格：读取记录"       # 读取内容表记录
+  - "多维表格：修改记录"       # 更新内容表记录
+  - "多维表格：创建记录"       # 在任务表、日志表中创建记录
+  - "消息推送：发送消息到用户" # 发送通知给相关负责人
+  - "调用 Webhook"            # 调用 WordPress 外部 API
+  - "读取字段权限"             # 读取内容表中的所有相关字段
+
+# ============================================================
+# 三、步骤详细配置
+# ============================================================
+
+steps:
+
+  # --- 步骤 1：获取内容记录详情 ---
+  - step: 1
+    name: "获取内容记录详情"
+    action_type: "读取记录"  # 飞书自动化中的"获取记录"操作
+    config:
+      table: "内容管理表"
+      record_source: "触发记录"  # 使用触发器中的当前记录
+      fields_to_read:
+        - "标题"           # 字段名: 标题
+        - "内容正文"       # 字段名: 内容正文
+        - "作者"           # 字段名: 作者（人员字段）
+        - "SEO评分"        # 字段名: SEO评分（数字字段）
+        - "分类"           # 字段名: 分类
+        - "标签"           # 字段名: 标签
+        - "活动负责人"     # 字段名: 活动负责人（人员字段）
+        - "Meta描述"       # 字段名: Meta描述
+        - "特色图片URL"    # 字段名: 特色图片URL
+      variable_mapping:
+        # 读取后将字段值保存为变量，供后续步骤使用
+        title: "{{当前记录.标题}}"
+        content: "{{当前记录.内容正文}}"
+        author: "{{当前记录.作者}}"
+        seo_score: "{{当前记录.SEO评分}}"
+        category: "{{当前记录.分类}}"
+        tags: "{{当前记录.标签}}"
+        campaign_owner: "{{当前记录.活动负责人}}"
+        meta_description: "{{当前记录.Meta描述}}"
+        featured_image: "{{当前记录.特色图片URL}}"
+
+  # --- 步骤 2：调用 WordPress Webhook 发布文章 ---
+  - step: 2
+    name: "调用WordPress发布接口"
+    action_type: "调用Webhook"  # 飞书自动化中的"发送 HTTP 请求"操作
+    config:
+      method: "POST"
+      url: "https://your-server.com/api/wp/publish"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer {{YOUR_API_SECRET_TOKEN}}"
+      body_type: "JSON"
+      body:
+        title: "{{title}}"
+        content: "{{content}}"
+        status: "publish"
+        author: "{{author}}"
+        categories: "{{category}}"
+        tags: "{{tags}}"
+        meta_description: "{{meta_description}}"
+        featured_image_url: "{{featured_image}}"
+      timeout_seconds: 30
+      retry:
+        max_retries: 3
+        retry_delay_seconds: 5
+      response_mapping:
+        # 将 Webhook 响应保存为变量
+        wp_post_id: "{{response.body.post_id}}"
+        wp_url: "{{response.body.url}}"
+        wp_status: "{{response.body.status}}"
+    error_handling:
+      on_error: "重试后仍失败则记录错误日志并通知管理员"
+      notification_target: "系统管理员"
+
+  # --- 步骤 3：更新内容记录（已发布状态） ---
+  - step: 3
+    name: "更新内容记录为已发布"
+    action_type: "修改记录"  # 飞书自动化中的"更新记录"操作
+    config:
+      table: "内容管理表"
+      record_source: "触发记录"  # 更新当前触发的记录
+      field_updates:
+        - field: "状态"
+          value: "已发布"
+        - field: "WP文章ID"
+          value: "{{wp_post_id}}"           # 来自步骤2的响应
+        - field: "发布URL"
+          value: "{{wp_url}}"               # 来自步骤2的响应
+        - field: "发布日期"
+          value: "{{NOW()}}"                # 飞书内置函数：当前时间
+        - field: "最后修改时间"
+          value: "{{NOW()}}"
+      update_mode: "追加更新"  # 只更新指定字段
+
+  # --- 步骤 4：SEO 评分检查与任务创建 ---
+  - step: 4
+    name: "SEO评分不足时创建优化任务"
+    action_type: "条件分支"  # 飞书自动化中的"条件判断"
+    config:
+      condition:
+        type: "字段比较"
+        field: "{{seo_score}}"
+        operator: "小于 (<)"
+        value: 70
+      branch_when_true:
+        - step: "4a"
+          name: "创建SEO优化任务"
+          action_type: "创建记录"
+          config:
+            table: "任务管理表"
+            field_values:
+              - field: "任务标题"
+                value: "SEO优化 - {{title}}"
+              - field: "任务类型"
+                value: "SEO优化"
+              - field: "优先级"
+                value: "P1"
+              - field: "负责人"
+                value: "{{author}}"
+              - field: "截止日期"
+                value: "{{DATE_ADD(NOW(), 3, 'day')}}"  # 今天+3天
+              - field: "关联内容"
+                value: "{{title}}"
+              - field: "任务描述"
+                value: "内容\"{{title}}\"的SEO评分为{{seo_score}}，低于70分阈值，需要进行SEO优化。\n\n目标URL: {{wp_url}}\n\n优化建议：\n1. 检查标题中的关键词密度\n2. 优化Meta描述\n3. 添加内部链接\n4. 确保图片有alt标签\n5. 提升内容长度至1500字以上"
+              - field: "状态"
+                value: "待处理"
+              - field: "创建日期"
+                value: "{{NOW()}}"
+      branch_when_false:
+        step: "skip"
+        name: "跳过SEO任务创建"
+        description: "SEO评分 >= 70，无需创建优化任务"
+
+  # --- 步骤 5：发送飞书通知消息 ---
+  - step: 5
+    name: "通知活动负责人内容已发布"
+    action_type: "发送飞书消息"  # 飞书自动化中的"发送消息"操作
+    config:
+      message_type: "card"  # 使用飞书卡片消息
+      recipient:
+        type: "人员字段"  # 从记录中获取人员
+        field: "{{campaign_owner}}"
+      card_template:
+        header:
+          title: "✅ 内容发布成功"
+          template: "blue"
+        body:
+          - type: "markdown"
+            content: >
+              **内容已成功发布！**\n\n
+              📝 **标题**：{{title}}\n
+              👤 **作者**：{{author}}\n
+              🔗 **链接**：[{{wp_url}}]({{wp_url}})\n
+              📊 **SEO评分**：{{seo_score}} 分\n
+              🕐 **发布时间**：{{NOW()}}
+        actions:
+          - type: "button"
+            text: "查看内容"
+            url: "{{wp_url}}"
+            color: "primary"
+          - type: "button"
+            text: "打开内容管理表"
+            url: "{{CONTENT_TABLE_URL}}"  # 替换为你的多维表格链接
+
+  # --- 步骤 6：记录操作日志 ---
+  - step: 6
+    name: "记录到工作流日志表"
+    action_type: "创建记录"  # 在日志表中新建记录
+    config:
+      table: "工作流日志表"
+      field_values:
+        - field: "工作流名称"
+          value: "内容发布自动化流程"
+        - field: "触发时间"
+          value: "{{NOW()}}"
+        - field: "操作类型"
+          value: "内容发布"
+        - field: "关联记录ID"
+          value: "{{当前记录.记录ID}}"
+        - field: "关联内容标题"
+          value: "{{title}}"
+        - field: "执行步骤"
+          value: "步骤2(发布) → 步骤3(更新) → 步骤4(SEO检查) → 步骤5(通知)"
+        - field: "执行结果"
+          value: "成功"
+        - field: "WordPress文章ID"
+          value: "{{wp_post_id}}"
+        - field: "发布URL"
+          value: "{{wp_url}}"
+        - field: "备注"
+          value: |
+            SEO评分: {{seo_score}}
+            {{IF(seo_score < 70, "已创建SEO优化任务", "SEO评分合格，无需优化")}}
+
+# ============================================================
+# 四、错误处理说明
+# ============================================================
+error_handling:
+  global:
+    on_webhook_failure:
+      - "重试 3 次，每次间隔 5 秒"
+      - "3 次均失败后，向系统管理员发送飞书消息告警"
+      - "在日志表中记录失败信息，状态标记为'发布失败'"
+      - "更新内容表状态为'发布失败'，方便人工介入"
+    on_permission_denied:
+      - "检查飞书应用是否具有所需的全部权限"
+      - "记录详细权限错误信息到日志表"
+    on_record_not_found:
+      - "记录 Warn 级别日志"
+      - "终止当前执行流程"
+  fallback_notification:
+    title: "⚠️ 内容发布流程异常"
+    message: "内容\"{{title}}\"发布失败，请人工介入处理。\n错误类型：{{error_type}}\n错误详情：{{error_message}}"
+    recipients: ["系统管理员"]
+
+# ============================================================
+# 五、测试验证清单
+# ============================================================
+test_checklist:
+  - "手动将一条内容记录的状态改为'已通过'"
+  - "观察 WordPress 是否收到发布请求"
+  - "检查内容表状态是否更新为'已发布'"
+  - "检查 WP文章ID 和 发布URL 字段是否已填充"
+  - "如果 SEO评分 < 70，检查任务表是否有新任务"
+  - "检查目标人员是否收到飞书卡片消息"
+  - "检查工作流日志表是否有新记录"
+  - "测试高 SEO 评分场景（评分 >= 70）确认不创建任务"
+  - "测试 Webhook 超时/失败场景确认错误处理生效"

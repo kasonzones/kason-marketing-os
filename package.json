@@ -1,0 +1,40 @@
+{
+  "name": "kason-marketing-os",
+  "version": "3.0.0",
+  "description": "Kason Marketing OS V3.0 — 基于飞书 + MarketingSkills 的全栈营销操作系统",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "setup": "node scripts/setup.js",
+    "deploy": "bash scripts/deploy.sh",
+    "sync:wp": "node scripts/sync-wordpress.js",
+    "report:daily": "node scripts/daily-report.js",
+    "report:weekly": "node scripts/weekly-report.js",
+    "test": "node --test tests/"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chart.js": "^4.4.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "marketing",
+    "automation",
+    "feishu",
+    "wordpress",
+    "seo",
+    "analytics"
+  ],
+  "author": "Kason",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

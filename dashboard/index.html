@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kason Marketing OS V3.0 - 仪表盘</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+</script>
+<style>
+:root {
+  --primary: #4A6CF7;
+  --primary-dark: #3B5DE7;
+  --primary-light: #EEF1FE;
+  --primary-gradient: linear-gradient(135deg, #4A6CF7 0%, #6366F1 100%);
+  --bg: #f5f7fa;
+  --white: #ffffff;
+  --sidebar-bg: #1a2332;
+  --sidebar-hover: #243044;
+  --sidebar-active: rgba(74,108,247,0.15);
+  --sidebar-text: #a1aab5;
+  --sidebar-text-active: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --border: #e5e7eb;
+  --border-light: #f0f2f5;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --red: #ef4444;
+  --green: #10b981;
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --card-shadow-hover: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.2s ease;
+  --sidebar-width: 250px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  display: flex;
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ SIDEBAR ============ */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  transition: transform var(--transition);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-brand {
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.sidebar-brand .logo-icon {
+  width: 38px;
+  height: 38px;
+  background: var(--primary-gradient);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-brand .logo-icon svg { width: 20px; height: 20px; stroke: white; fill: none; stroke-width: 2; }
+
+.sidebar-brand-info { display: flex; flex-direction: column; }
+
+.sidebar-brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sidebar-text-active);
+  letter-spacing: -0.3px;
+}
+
+.sidebar-brand-version {
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.sidebar-nav { flex: 1; padding: 12px 0; }
+
+.sidebar-section { padding: 16px 20px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.25); }
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  margin: 2px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--sidebar-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sidebar-nav-item:hover { background: var(--sidebar-hover); color: #c8cdd5; }
+.sidebar-nav-item.active { background: var(--sidebar-active); color: var(--primary); font-weight: 600; }
+.sidebar-nav-item.active .nav-icon { color: var(--primary); }
+.sidebar-nav-item .nav-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* ============ MAIN ============ */
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ============ HEADER ============ */
+.header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.header-left { display: flex; align-items: center; gap: 16px; }
+
+.menu-toggle {
+  display: none;
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.header-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+
+.header-right { display: flex; align-items: center; gap: 16px; }
+
+.header-search {
+  position: relative;
+}
+
+.header-search input {
+  width: 260px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 16px 0 38px;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text-primary);
+  outline: none;
+  transition: all var(--transition);
+}
+
+.header-search input:focus { border-color: var(--primary); background: var(--white); box-shadow: 0 0 0 3px rgba(74,108,247,0.1); }
+
+.header-search .search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); font-size: 14px;
+}
+
+.header-notification {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.header-notification .badge {
+  position: absolute;
+  top: -4px; right: -4px;
+  width: 18px; height: 18px;
+  background: #ef4444;
+  border-radius: 50%;
+  font-size: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 10px;
+  transition: background var(--transition);
+}
+
+.header-user:hover { background: var(--bg); }
+
+.header-user .avatar {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--primary-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.header-user .user-info { line-height: 1.2; }
+.header-user .user-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.header-user .user-role { font-size: 11px; color: var(--text-muted); }
+
+/* ============ CONTENT ============ */
+.content { padding: 24px 28px; flex: 1; }
+
+/* ============ KPI CARDS ============ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 3px;
+}
+
+.kpi-card:nth-child(1)::before { background: linear-gradient(90deg, #4A6CF7, #6366F1); }
+.kpi-card:nth-child(2)::before { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+.kpi-card:nth-child(3)::before { background: linear-gradient(90deg, #06B6D4, #22D3EE); }
+.kpi-card:nth-child(4)::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+.kpi-card:nth-child(5)::before { background: linear-gradient(90deg, #EC4899, #F472B6); }
+
+.kpi-card:hover { box-shadow: var(--card-shadow-hover); transform: translateY(-2px); }
+
+.kpi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.kpi-card-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+
+.kpi-card-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.kpi-card:nth-child(1) .kpi-card-icon { background: #EEF1FE; color: #4A6CF7; }
+.kpi-card:nth-child(2) .kpi-card-icon { background: #F3EEFF; color: #8B5CF6; }
+.kpi-card:nth-child(3) .kpi-card-icon { background: #ECFEFF; color: #06B6D4; }
+.kpi-card:nth-child(4) .kpi-card-icon { background: #FFFBEB; color: #F59E0B; }
+.kpi-card:nth-child(5) .kpi-card-icon { background: #FDF2F8; color: #EC4899; }
+
+.kpi-card-value { font-size: 28px; font-weight: 800; color: var(--text-primary); letter-spacing: -1px; margin-bottom: 4px; }
+
+.kpi-card-change { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+
+.kpi-card-change.up { color: var(--red); }
+.kpi-card-change.down { color: var(--green); }
+
+/* ============ GRID LAYOUTS ============ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.grid-3-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+/* ============ CARD ============ */
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+
+.card-subtitle { font-size: 12px; color: var(--text-muted); }
+
+.card-body { padding: 20px; }
+
+.card-body-no-padding { padding: 0; }
+
+/* ============ FUNNEL ============ */
+.funnel-container { padding: 10px 0; }
+
+.funnel-item { margin-bottom: 8px; position: relative; }
+
+.funnel-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.funnel-label-left { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.funnel-label-right { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+
+.funnel-bar-bg {
+  height: 32px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.funnel-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-size: 12px;
+  color: white;
+  font-weight: 600;
+  min-width: fit-content;
+}
+
+.funnel-bar-fill.stage-1 { background: linear-gradient(90deg, #4A6CF7, #6366F1); width: 100%; }
+.funnel-bar-fill.stage-2 { background: linear-gradient(90deg, #6366F1, #7C3AED); width: 72%; margin-left: 14%; }
+.funnel-bar-fill.stage-3 { background: linear-gradient(90deg, #7C3AED, #8B5CF6); width: 50%; margin-left: 25%; }
+.funnel-bar-fill.stage-4 { background: linear-gradient(90deg, #8B5CF6, #A855F7); width: 32%; margin-left: 34%; }
+.funnel-bar-fill.stage-5 { background: linear-gradient(90deg, #A855F7, #C084FC); width: 18%; margin-left: 41%; }
+
+.funnel-arrow {
+  text-align: center;
+  padding: 2px 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.funnel-rate {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  text-align: right;
+}
+
+/* ============ TABLE ============ */
+.table-wrap { overflow-x: auto; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbfc;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.table tbody tr { transition: background var(--transition); }
+.table tbody tr:hover { background: #f8fafc; }
+
+.table tbody tr:last-child td { border-bottom: none; }
+
+/* ============ STATUS BADGES ============ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.badge-active { background: #EEF1FE; color: #4A6CF7; }
+.badge-completed { background: #ECFDF5; color: #059669; }
+.badge-pending { background: #FFF7ED; color: #EA580C; }
+
+.badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.badge-active .badge-dot { background: #4A6CF7; }
+.badge-completed .badge-dot { background: #059669; }
+.badge-pending .badge-dot { background: #EA580C; }
+
+/* ============ ACTIVITIES ============ */
+.activity-list { list-style: none; }
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.activity-item:last-child { border-bottom: none; padding-bottom: 0; }
+.activity-item:first-child { padding-top: 0; }
+
+.activity-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.activity-icon.lead { background: #EEF1FE; color: #4A6CF7; }
+.activity-icon.campaign { background: #FDF2F8; color: #EC4899; }
+.activity-icon.content { background: #ECFDF5; color: #059669; }
+.activity-icon.system { background: #FFF7ED; color: #EA580C; }
+
+.activity-body { flex: 1; min-width: 0; }
+
+.activity-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+
+.activity-text strong { font-weight: 600; color: var(--primary); }
+
+.activity-time { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* ============ QUICK ACTIONS ============ */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.quick-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.quick-action-btn:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.quick-action-btn .qa-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.quick-action-btn:nth-child(1) .qa-icon { background: #EEF1FE; color: #4A6CF7; }
+.quick-action-btn:nth-child(2) .qa-icon { background: #F3EEFF; color: #8B5CF6; }
+.quick-action-btn:nth-child(3) .qa-icon { background: #ECFDF5; color: #059669; }
+.quick-action-btn:nth-child(4) .qa-icon { background: #FFF7ED; color: #EA580C; }
+
+.quick-action-btn .qa-label { font-size: 13px; font-weight: 600; }
+
+/* ============ CHART CONTAINERS ============ */
+.chart-container { position: relative; width: 100%; }
+
+.chart-container canvas { width: 100% !important; }
+
+/* ============ CALENDAR TABLE ============ */
+.calendar-date {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.calendar-weekday {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.calendar-today .calendar-date { color: var(--primary); }
+
+.calendar-activity {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.calendar-type {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ============ SECTION TITLE ============ */
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+/* ============ OVERLAY ============ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+
+.sidebar-overlay.active { display: block; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1400px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid .kpi-card:nth-child(4),
+  .kpi-grid .kpi-card:nth-child(5) { grid-column: span 1; }
+  .kpi-grid .kpi-card:nth-child(4) { grid-column: 1; }
+  .kpi-grid .kpi-card:nth-child(5) { grid-column: 2 / 4; }
+  .grid-3-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .kpi-grid .kpi-card:nth-child(4),
+  .kpi-grid .kpi-card:nth-child(5) { grid-column: span 1; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .quick-actions { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .menu-toggle { display: flex; }
+  .header-search { display: none; }
+  .content { padding: 16px; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-grid .kpi-card:nth-child(5) { grid-column: 1 / -1; }
+  .quick-actions { grid-template-columns: repeat(2, 1fr); }
+  .header { padding: 0 16px; }
+  .header-user .user-info { display: none; }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .kpi-grid .kpi-card:nth-child(4),
+  .kpi-grid .kpi-card:nth-child(5) { grid-column: span 1; }
+  .quick-actions { grid-template-columns: 1fr 1fr; }
+  .header-title { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ============ SIDEBAR ============ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+    </div>
+    <div class="sidebar-brand-info">
+      <div class="sidebar-brand-name">Kason Marketing OS</div>
+      <div class="sidebar-brand-version">V3.0.0</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="sidebar-section">主菜单</div>
+
+    <a class="sidebar-nav-item active" data-nav="dashboard">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="3" width="6" height="6" rx="1.5"/>
+        <rect x="11" y="3" width="6" height="6" rx="1.5"/>
+        <rect x="3" y="11" width="6" height="6" rx="1.5"/>
+        <rect x="11" y="11" width="6" height="6" rx="1.5"/>
+      </svg>
+      仪表盘
+    </a>
+
+    <a class="sidebar-nav-item" data-nav="campaigns">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M3 8h14M3 12h14M3 16h10M6 4h8l1 4H5l1-4z"/>
+      </svg>
+      营销活动
+    </a>
+
+    <a class="sidebar-nav-item" data-nav="content">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 3h9l3 3v11a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+        <path d="M13 3v4h4"/>
+        <path d="M6 10h8M6 13h8M6 16h5"/>
+      </svg>
+      内容管理
+    </a>
+
+    <a class="sidebar-nav-item" data-nav="leads">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="7" cy="6" r="3"/>
+        <path d="M1 18v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+        <path d="M17 5l2 2-4 4-2-1-3 3"/>
+      </svg>
+      线索管理
+    </a>
+
+    <a class="sidebar-nav-item" data-nav="tasks">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M3 5h5M3 10h8M3 15h11"/>
+        <circle cx="16" cy="14" r="3"/>
+        <path d="M15 14l.7.7 1.3-1.3"/>
+      </svg>
+      任务管理
+    </a>
+
+    <a class="sidebar-nav-item" data-nav="analytics">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M3 17V7l5 5 3-4 6 6v3H3z"/>
+      </svg>
+      数据分析
+    </a>
+
+    <div class="sidebar-section">系统</div>
+
+    <a class="sidebar-nav-item" data-nav="skills">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <polygon points="10 2 12.5 7.5 18.5 8.5 14 12.5 15 18.5 10 15.5 5 18.5 6 12.5 1.5 8.5 7.5 7.5"/>
+      </svg>
+      技能中心
+    </a>
+
+    <a class="sidebar-nav-item" data-nav="settings">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="10" cy="10" r="2.5"/>
+        <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.93 4.93l1.41 1.41M13.66 13.66l1.41 1.41M4.93 15.07l1.41-1.41M13.66 6.34l1.41-1.41"/>
+      </svg>
+      设置
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    &copy; 2026 Kason Tech. All rights reserved.
+  </div>
+</aside>
+
+<!-- ============ MAIN CONTENT ============ -->
+<div class="main">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 5h14M3 10h14M3 15h14"/>
+        </svg>
+      </button>
+      <h1 class="header-title">仪表盘</h1>
+    </div>
+
+    <div class="header-right">
+      <div class="header-search">
+        <span class="search-icon">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="8.5" cy="8.5" r="5"/>
+            <path d="M12 12l5 5"/>
+          </svg>
+        </span>
+        <input type="text" placeholder="搜索活动、线索、内容...">
+      </div>
+
+      <button class="header-notification" aria-label="通知">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 7a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9z"/>
+          <path d="M11.73 17a2 2 0 01-3.46 0"/>
+        </svg>
+        <span class="badge">3</span>
+      </button>
+
+      <div class="header-user">
+        <div class="avatar">张</div>
+        <div class="user-info">
+          <div class="user-name">张伟</div>
+          <div class="user-role">市场总监</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ====== KPI Cards ====== -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <div class="kpi-card-label">本月线索</div>
+          <div class="kpi-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="7" cy="6" r="3"/><path d="M1 18v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-value">1,247</div>
+        <div class="kpi-card-change up">&#9650; 12.5% 较上月</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <div class="kpi-card-label">转化率</div>
+          <div class="kpi-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M17 5l-7 7-3-3-5 5"/>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-value">23.8%</div>
+        <div class="kpi-card-change up">&#9650; 3.2% 较上月</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <div class="kpi-card-label">内容发布数</div>
+          <div class="kpi-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 3h9l3 3v11a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M13 3v4h4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-value">86</div>
+        <div class="kpi-card-change down">&#9660; 5.2% 较上月</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <div class="kpi-card-label">平均SEO评分</div>
+          <div class="kpi-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polygon points="10 2 12.5 7.5 18.5 8.5 14 12.5 15 18.5 10 15.5 5 18.5 6 12.5 1.5 8.5 7.5 7.5"/>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-value">87.5</div>
+        <div class="kpi-card-change up">&#9650; 8.3% 较上月</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <div class="kpi-card-label">广告ROI</div>
+          <div class="kpi-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="8" cy="6" r="2"/><path d="M1 18v-1a3 3 0 013-3h8a3 3 0 013 3v1"/><path d="M15 3l3 3-3 3"/><path d="M14 6h4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="kpi-card-value">4.8:1</div>
+        <div class="kpi-card-change up">&#9650; 15.2% 较上月</div>
+      </div>
+    </div>
+
+    <!-- ====== Marketing Funnel + Lead Source Pie ====== -->
+    <div class="grid-3-2">
+      <!-- Marketing Funnel -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">营销漏斗 - AutoWash Pro X1</div>
+          <div class="card-subtitle">本月数据</div>
+        </div>
+        <div class="card-body">
+          <div class="funnel-container" id="funnelChart">
+            <div class="funnel-item">
+              <div class="funnel-label">
+                <span class="funnel-label-left">&#9679; 访客</span>
+                <span class="funnel-label-right">48,500</span>
+              </div>
+              <div class="funnel-bar-bg">
+                <div class="funnel-bar-fill stage-1">48,500</div>
+              </div>
+              <div class="funnel-rate">100%</div>
+            </div>
+            <div class="funnel-arrow">&#9660;</div>
+            <div class="funnel-item">
+              <div class="funnel-label">
+                <span class="funnel-label-left">&#9679; 线索</span>
+                <span class="funnel-label-right">12,470</span>
+              </div>
+              <div class="funnel-bar-bg">
+                <div class="funnel-bar-fill stage-2">12,470</div>
+              </div>
+              <div class="funnel-rate">转化率 25.7%</div>
+            </div>
+            <div class="funnel-arrow">&#9660;</div>
+            <div class="funnel-item">
+              <div class="funnel-label">
+                <span class="funnel-label-left">&#9679; MQL</span>
+                <span class="funnel-label-right">4,350</span>
+              </div>
+              <div class="funnel-bar-bg">
+                <div class="funnel-bar-fill stage-3">4,350</div>
+              </div>
+              <div class="funnel-rate">转化率 34.9%</div>
+            </div>
+            <div class="funnel-arrow">&#9660;</div>
+            <div class="funnel-item">
+              <div class="funnel-label">
+                <span class="funnel-label-left">&#9679; SQL</span>
+                <span class="funnel-label-right">1,850</span>
+              </div>
+              <div class="funnel-bar-bg">
+                <div class="funnel-bar-fill stage-4">1,850</div>
+              </div>
+              <div class="funnel-rate">转化率 42.5%</div>
+            </div>
+            <div class="funnel-arrow">&#9660;</div>
+            <div class="funnel-item">
+              <div class="funnel-label">
+                <span class="funnel-label-left">&#9679; 成交</span>
+                <span class="funnel-label-right">742</span>
+              </div>
+              <div class="funnel-bar-bg">
+                <div class="funnel-bar-fill stage-5">742</div>
+              </div>
+              <div class="funnel-rate">转化率 40.1%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lead Source Pie -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">线索来源分布</div>
+          <div class="card-subtitle">本月</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="leadSourceChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== Content Calendar + Recent Activities ====== -->
+    <div class="grid-2">
+      <!-- Content Calendar -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">内容日历 - 未来7天</div>
+          <div class="card-subtitle" id="calendarDateRange"></div>
+        </div>
+        <div class="card-body-no-padding">
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width:90px;">日期</th>
+                  <th>活动内容</th>
+                  <th style="width:80px;">类型</th>
+                  <th style="width:70px;">状态</th>
+                </tr>
+              </thead>
+              <tbody id="calendarBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activities -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">最近动态</div>
+          <div class="card-subtitle">实时更新</div>
+        </div>
+        <div class="card-body">
+          <ul class="activity-list">
+            <li class="activity-item">
+              <div class="activity-icon lead">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="7" cy="6" r="3"/><path d="M1 18v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+                </svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>王小明</strong> 创建了新线索 "深圳龙华加油站洗车项目"</div>
+                <div class="activity-time">8分钟前</div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon campaign">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 8h14M3 12h14M3 16h10M6 4h8l1 4H5l1-4z"/>
+                </svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-text">营销活动 <strong>"夏季促销"</strong> ROI达到 5.2:1</div>
+                <div class="activity-time">42分钟前</div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon content">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 3h9l3 3v11a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M13 3v4h4"/>
+                </svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-text">内容 <strong>"AutoWash Pro X1 产品手册 V3"</strong> 已发布</div>
+                <div class="activity-time">2小时前</div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon system">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="10" cy="10" r="2.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2"/>
+                </svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-text">系统自动完成 每周SEO审计报告</div>
+                <div class="activity-time">3小时前</div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon lead">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="7" cy="6" r="3"/><path d="M1 18v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+                </svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>李芳</strong> 将线索 "广州万达停车场项目" 转为MQL</div>
+                <div class="activity-time">昨天 16:42</div>
+              </div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon campaign">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 8h14M3 12h14M3 16h10M6 4h8l1 4H5l1-4z"/>
+                </svg>
+              </div>
+              <div class="activity-body">
+                <div class="activity-text">活动 <strong>"新品发布会"</strong> 状态更新为已完成</div>
+                <div class="activity-time">昨天 14:20</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== Campaign Performance Table ====== -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-header">
+        <div class="card-title">活动绩效总览</div>
+        <div class="card-subtitle">本月数据 | 共5个活动</div>
+      </div>
+      <div class="card-body-no-padding">
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>活动名称</th>
+                <th>类型</th>
+                <th>预算</th>
+                <th>花费</th>
+                <th>ROI</th>
+                <th>转化线索</th>
+                <th>开始日期</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600;">夏季促销活动</td>
+                <td>促销</td>
+                <td>¥50,000</td>
+                <td>¥42,300</td>
+                <td style="font-weight:700; color:#4A6CF7;">5.2:1</td>
+                <td>186</td>
+                <td>2026-07-01</td>
+                <td><span class="badge badge-active"><span class="badge-dot"></span>进行中</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;">新品发布会 - AutoWash Pro X1</td>
+                <td>活动</td>
+                <td>¥100,000</td>
+                <td>¥87,600</td>
+                <td style="font-weight:700; color:#4A6CF7;">3.8:1</td>
+                <td>312</td>
+                <td>2026-06-15</td>
+                <td><span class="badge badge-completed"><span class="badge-dot"></span>已完成</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;">SEO优化计划 - 洗车机关键词</td>
+                <td>SEO</td>
+                <td>¥30,000</td>
+                <td>¥28,500</td>
+                <td style="font-weight:700; color:#4A6CF7;">6.1:1</td>
+                <td>420</td>
+                <td>2026-06-01</td>
+                <td><span class="badge badge-active"><span class="badge-dot"></span>进行中</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;">社交媒体推广矩阵</td>
+                <td>社交媒体</td>
+                <td>¥20,000</td>
+                <td>¥18,200</td>
+                <td style="font-weight:700; color:#4A6CF7;">4.5:1</td>
+                <td>145</td>
+                <td>2026-07-05</td>
+                <td><span class="badge badge-active"><span class="badge-dot"></span>进行中</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;">邮件培育 - 加油站客户专项</td>
+                <td>邮件</td>
+                <td>¥15,000</td>
+                <td>¥14,000</td>
+                <td style="font-weight:700; color:#4A6CF7;">7.2:1</td>
+                <td>98</td>
+                <td>2026-07-18</td>
+                <td><span class="badge badge-pending"><span class="badge-dot"></span>待开始</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== SEO Trend Chart ====== -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-header">
+        <div class="card-title">SEO评分趋势 - 近30天</div>
+        <div class="card-subtitle">AutoWash Pro X1 关键词表现</div>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 320px;">
+          <canvas id="seoTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== Quick Actions ====== -->
+    <div class="section-title">快捷操作</div>
+    <div class="quick-actions">
+      <button class="quick-action-btn" onclick="alert('正在跳转到新建活动页面...')">
+        <div class="qa-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 8h14M3 12h14M3 16h10M6 4h8l1 4H5l1-4z"/>
+          </svg>
+        </div>
+        <span class="qa-label">新建活动</span>
+      </button>
+
+      <button class="quick-action-btn" onclick="alert('正在跳转到新建内容页面...')">
+        <div class="qa-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 3h9l3 3v11a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M13 3v4h4"/>
+          </svg>
+        </div>
+        <span class="qa-label">新建内容</span>
+      </button>
+
+      <button class="quick-action-btn" onclick="alert('正在跳转到新建线索页面...')">
+        <div class="qa-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="7" cy="6" r="3"/><path d="M1 18v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+          </svg>
+        </div>
+        <span class="qa-label">新建线索</span>
+      </button>
+
+      <button class="quick-action-btn" onclick="alert('正在生成月度报告...')">
+        <div class="qa-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 17V7l5 5 3-4 6 6v3H3z"/>
+          </svg>
+        </div>
+        <span class="qa-label">生成报告</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ SIDEBAR MOBILE TOGGLE ============
+const menuToggle = document.getElementById('menuToggle');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+function toggleSidebar() {
+  sidebar.classList.toggle('open');
+  sidebarOverlay.classList.toggle('active');
+  document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+}
+
+menuToggle.addEventListener('click', toggleSidebar);
+sidebarOverlay.addEventListener('click', toggleSidebar);
+
+// ============ SIDEBAR NAV ACTIVE ============
+document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
+    this.classList.add('active');
+    if (window.innerWidth <= 768) toggleSidebar();
+  });
+});
+
+// ============ CONTENT CALENDAR ============
+(function renderCalendar() {
+  const today = new Date(2026, 6, 14); // July 14, 2026
+  const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+  const calendarData = [
+    { activity: 'AutoWash Pro X1 产品演示视频拍摄', type: '视频', status: 'pending' },
+    { activity: '洗车机技术白皮书撰写', type: '白皮书', status: 'active' },
+    { activity: '客户案例：杭州加油站项目', type: '案例研究', status: 'pending' },
+    { activity: 'SEO关键词优化 - 全自动洗车机', type: 'SEO', status: 'active' },
+    { activity: '社交媒体推广帖子 × 5组', type: '社交媒体', status: 'pending' },
+    { activity: '邮件营销：7月行业简报', type: '邮件', status: 'pending' },
+    { activity: '洗车机行业趋势季报', type: '报告', status: 'pending' }
+  ];
+
+  const statusMap = {
+    active: '<span class="badge badge-active"><span class="badge-dot"></span>进行中</span>',
+    pending: '<span class="badge badge-pending"><span class="badge-dot"></span>待执行</span>',
+    completed: '<span class="badge badge-completed"><span class="badge-dot"></span>已完成</span>'
+  };
+
+  const tbody = document.getElementById('calendarBody');
+  const dateRangeEl = document.getElementById('calendarDateRange');
+
+  const startDate = new Date(today);
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + 6);
+
+  dateRangeEl.textContent =
+    `${startDate.getMonth() + 1}月${startDate.getDate()}日 - ${endDate.getMonth() + 1}月${endDate.getDate()}日`;
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() + i);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekday = weekdays[date.getDay()];
+    const isToday = i === 0;
+    const data = calendarData[i];
+
+    const tr = document.createElement('tr');
+    if (isToday) tr.classList.add('calendar-today');
+    tr.innerHTML = `
+      <td>
+        <div class="calendar-date">${month}月${day}日</div>
+        <div class="calendar-weekday">星期${weekday}</div>
+      </td>
+      <td>
+        <div class="calendar-activity">${data.activity}</div>
+        <div class="calendar-type">${data.type}</div>
+      </td>
+      <td><span style="font-size:12px;color:var(--text-secondary);">${data.type}</span></td>
+      <td>${statusMap[data.status]}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+})();
+
+// ============ LEAD SOURCE PIE CHART ============
+(function() {
+  const ctx = document.getElementById('leadSourceChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['官网', '社交媒体', '客户推荐', '邮件营销', '其他渠道'],
+      datasets: [{
+        data: [35, 25, 20, 12, 8],
+        backgroundColor: [
+          '#4A6CF7',
+          '#8B5CF6',
+          '#06B6D4',
+          '#F59E0B',
+          '#EC4899'
+        ],
+        borderColor: '#ffffff',
+        borderWidth: 3,
+        hoverBorderWidth: 4,
+        hoverBorderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '68%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            usePointStyle: true,
+            pointStyleWidth: 8,
+            font: { size: 12, family: "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" },
+            color: '#6b7280',
+            generateLabels: function(chart) {
+              const data = chart.data;
+              return data.labels.map((label, i) => ({
+                text: `${label}  ${data.datasets[0].data[i]}%`,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                strokeStyle: data.datasets[0].backgroundColor[i],
+                lineWidth: 0,
+                hidden: false,
+                index: i,
+                pointStyle: 'circle',
+                rotation: 0
+              }));
+            }
+          }
+        },
+        tooltip: {
+          backgroundColor: '#1a2332',
+          titleFont: { size: 13, family: "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" },
+          bodyFont: { size: 12 },
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(ctx) {
+              return ` ${ctx.label}: ${ctx.parsed}%`;
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+
+// ============ SEO TREND LINE CHART ============
+(function() {
+  const ctx = document.getElementById('seoTrendChart').getContext('2d');
+
+  // Generate 30 days of dates (June 15 - July 14, 2026)
+  const dates = [];
+  const seoScores = [78, 79, 77, 80, 82, 81, 83, 82, 84, 85, 83, 86, 87, 85, 88, 87, 89, 90, 88, 91, 90, 92, 91, 89, 90, 91, 92, 90, 91, 92];
+  const startDate = new Date(2026, 5, 15); // June 15, 2026
+
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    dates.push(`${d.getMonth() + 1}/${d.getDate()}`);
+  }
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+  gradient.addColorStop(0, 'rgba(74, 108, 247, 0.25)');
+  gradient.addColorStop(0.5, 'rgba(74, 108, 247, 0.08)');
+  gradient.addColorStop(1, 'rgba(74, 108, 247, 0)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: 'SEO评分',
+        data: seoScores,
+        borderColor: '#4A6CF7',
+        backgroundColor: gradient,
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: '#4A6CF7',
+        pointHoverBorderColor: '#ffffff',
+        pointHoverBorderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2332',
+          titleFont: { size: 12, family: "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" },
+          bodyFont: { size: 13, weight: 'bold', family: "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif" },
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: false,
+          callbacks: {
+            title: function(items) { return '日期: ' + items[0].label; },
+            label: function(item) { return 'SEO评分: ' + item.parsed.y + ' / 100'; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: '#9ca3af',
+            font: { size: 11 },
+            maxTicksLimit: 10
+          },
+          border: { display: false }
+        },
+        y: {
+          min: 70,
+          max: 96,
+          grid: {
+            color: '#f0f2f5',
+            drawBorder: false
+          },
+          ticks: {
+            color: '#9ca3af',
+            font: { size: 11 },
+            stepSize: 5,
+            callback: function(v) { return v; }
+          },
+          border: { display: false }
+        }
+      }
+    }
+  });
+})();
+
+// ============ ANIMATE FUNNEL ON SCROLL ============
+(function() {
+  const funnelBars = document.querySelectorAll('.funnel-bar-fill');
+  const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        funnelBars.forEach(function(bar, index) {
+          setTimeout(function() {
+            bar.style.transition = 'width 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
+            const origWidth = bar.style.width;
+            bar.style.width = '0%';
+            requestAnimationFrame(function() {
+              bar.style.width = origWidth;
+            });
+          }, index * 100);
+        });
+        observer.disconnect();
+      }
+    });
+  }, { threshold: 0.3 });
+
+  const funnelContainer = document.getElementById('funnelChart');
+  if (funnelContainer) observer.observe(funnelContainer);
+})();
+</script>
+
+</body>
+</html>

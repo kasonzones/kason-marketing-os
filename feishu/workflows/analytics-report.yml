@@ -1,0 +1,506 @@
+# ============================================================
+# 飞书工作流配置指南：数据分析报告流程
+# ============================================================
+# 适用模块：飞书多维表格自动化 (Feishu Bitable Automation)
+# 创建方式：飞书 → 多维表格 → 自动化 → 新建工作流
+# ============================================================
+
+workflow:
+  name: "数据分析报告流程"
+  description: >
+    每周一上午8点自动汇总过去7天的关键营销数据指标，生成分析报告，
+    将汇总指标写入分析表，通过飞书卡片推送到团队群聊。
+    自动检测数据异常（任何指标下降超过20%），发送预警通知。
+
+# ============================================================
+# 一、触发器配置
+# ============================================================
+trigger:
+  type: "定时触发"
+  config:
+    schedule_type: "每周"
+    day_of_week: "星期一"
+    time: "08:00"
+    timezone: "Asia/Shanghai"
+    description: >
+      每周一早上8点执行，给团队周一晨会前准备好数据。
+      与SEO审计流程（周一9点）错开时间，避免并发冲突。
+
+# ============================================================
+# 二、前置准备（飞书权限要求）
+# ============================================================
+permissions:
+  - "多维表格：读取记录"             # 读取各表数据进行聚合计算
+  - "多维表格：创建记录"             # 在分析表中写入汇总记录
+  - "消息推送：发送消息到群聊"       # 发送分析报告卡片
+  - "多维表格：执行聚合查询"         # 如果使用飞书公式/聚合字段
+
+# ============================================================
+# 三、数据聚合配置说明
+# ============================================================
+data_aggregation:
+  description: >
+    飞书自动化原生不支持复杂的 SQL 风格聚合查询。
+    推荐方案：
+      - 方案A（推荐）：在分析表中预先创建"聚合视图"或"仪表盘"，工作流直接读取快照数据
+      - 方案B：通过 Webhook 调用你自己的后端 API 进行聚合计算
+      - 方案C：使用飞书公式字段做简单聚合，多个步骤分步计算
+    
+    本配置采用方案A + 方案B 混合：
+    - 简单聚合（计数、求和）：使用飞书公式字段
+    - 复杂聚合（转化率、增长率）：通过 Webhook 调用后端计算
+
+  pre_aggregation_views:
+    # 在飞书多维表格中预先创建以下视图或统计字段
+    流量统计视图:
+      source_table: "网站流量表"
+      aggregation: "过去7天的访问量、独立访客数、页面浏览量"
+      output_fields: ["总访问量", "独立访客", "页面浏览量", "平均停留时间", "跳出率"]
+    线索统计视图:
+      source_table: "线索管理表"
+      aggregation: "过去7天新建线索数、按阶段分布、按来源分布"
+      output_fields: ["线索总数", "MQL数", "SQL数", "成交数"]
+    内容统计视图:
+      source_table: "内容管理表"
+      aggregation: "过去7天发布数量、平均SEO评分"
+      output_fields: ["发布数", "平均SEO评分"]
+    活动统计视图:
+      source_table: "活动管理表"
+      aggregation: "进行中活动、产出线索数、转化数"
+      output_fields: ["活跃活动数", "活动线索总数", "活动转化数"]
+
+# ============================================================
+# 四、步骤详细配置
+# ============================================================
+
+steps:
+
+  # --- 步骤 1：聚合多维度分析数据 ---
+  - step: 1
+    name: "聚合过去7天关键数据"
+    action_type: "多步骤数据查询"
+    config:
+      # 子步骤1.1：查询网站流量数据
+      query_traffic:
+        table: "网站流量表"
+        date_field: "日期"
+        date_range:
+          start: "{{DATE_ADD(NOW(), -7, 'day')}}"
+          end: "{{NOW()}}"
+        operations:
+          - name: "总访问量"
+            formula: "SUM(访问量)"
+            output_variable: "total_visits"
+          - name: "总独立访客"
+            formula: "SUM(独立访客)"
+            output_variable: "total_unique_visitors"
+          - name: "总页面浏览量"
+            formula: "SUM(页面浏览量)"
+            output_variable: "total_pageviews"
+          - name: "平均跳出率"
+            formula: "AVERAGE(跳出率)"
+            output_variable: "avg_bounce_rate"
+
+      # 子步骤1.2：查询线索数据
+      query_leads:
+        table: "线索管理表"
+        date_field: "创建日期"
+        date_range:
+          start: "{{DATE_ADD(NOW(), -7, 'day')}}"
+          end: "{{NOW()}}"
+        operations:
+          - name: "线索总数"
+            formula: "COUNT(记录ID)"
+            output_variable: "total_leads"
+          - name: "MQL数量"
+            formula: "COUNT(IF(生命周期阶段='MQL', 记录ID, NULL))"
+            output_variable: "mql_count"
+          - name: "SQL数量"
+            formula: "COUNT(IF(生命周期阶段='SQL', 记录ID, NULL))"
+            output_variable: "sql_count"
+          - name: "成交数量"
+            formula: "COUNT(IF(生命周期阶段='成交', 记录ID, NULL))"
+            output_variable: "won_count"
+          - name: "广告来源线索"
+            formula: "COUNT(IF(来源渠道 包含 '广告', 记录ID, NULL))"
+            output_variable: "adsource_leads"
+
+      # 子步骤1.3：查询内容数据
+      query_content:
+        table: "内容管理表"
+        date_field: "发布日期"
+        date_range:
+          start: "{{DATE_ADD(NOW(), -7, 'day')}}"
+          end: "{{NOW()}}"
+        operations:
+          - name: "发布内容数"
+            formula: "COUNT(记录ID)"
+            output_variable: "published_content_count"
+          - name: "平均SEO评分"
+            formula: "AVERAGE(SEO评分)"
+            output_variable: "avg_seo_score"
+
+      # 子步骤1.4：查询活动数据
+      query_campaigns:
+        table: "活动管理表"
+        status_filter: "进行中"
+        operations:
+          - name: "活跃活动数"
+            formula: "COUNT(记录ID)"
+            output_variable: "active_campaigns"
+
+  # --- 步骤 2：计算派生指标 ---
+  - step: 2
+    name: "计算转化率与增长率"
+    action_type: "调用Webhook"  # 通过后端API完成复杂计算
+    config:
+      method: "POST"
+      url: "https://your-server.com/api/analytics/compute-metrics"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer {{ANALYTICS_API_SECRET_TOKEN}}"
+      body_type: "JSON"
+      body:
+        current_week:
+          total_visits: "{{total_visits}}"
+          total_leads: "{{total_leads}}"
+          mql_count: "{{mql_count}}"
+          sql_count: "{{sql_count}}"
+          won_count: "{{won_count}}"
+          avg_seo_score: "{{avg_seo_score}}"
+          published_content_count: "{{published_content_count}}"
+          avg_bounce_rate: "{{avg_bounce_rate}}"
+        request_metrics:
+          - name: "visitor_to_lead_rate"
+            formula: "total_leads / total_visits * 100"
+            unit: "%"
+          - name: "lead_to_mql_rate"
+            formula: "mql_count / total_leads * 100"
+            unit: "%"
+          - name: "mql_to_sql_rate"
+            formula: "sql_count / mql_count * 100"
+            unit: "%"
+          - name: "sql_to_won_rate"
+            formula: "won_count / sql_count * 100"
+            unit: "%"
+          - name: "overall_conversion_rate"
+            formula: "won_count / total_leads * 100"
+            unit: "%"
+        compare_with_previous_week: true  # 同时要求计算增长率
+      timeout_seconds: 15
+      retry:
+        max_retries: 2
+        retry_delay_seconds: 3
+      response_mapping:
+        visitor_to_lead_rate: "{{response.body.metrics.visitor_to_lead_rate}}"
+        lead_to_mql_rate: "{{response.body.metrics.lead_to_mql_rate}}"
+        mql_to_sql_rate: "{{response.body.metrics.mql_to_sql_rate}}"
+        sql_to_won_rate: "{{response.body.metrics.sql_to_won_rate}}"
+        overall_conversion_rate: "{{response.body.metrics.overall_conversion_rate}}"
+        traffic_growth_rate: "{{response.body.growth_rates.traffic}}"
+        leads_growth_rate: "{{response.body.growth_rates.leads}}"
+        seo_growth_rate: "{{response.body.growth_rates.seo_score}}"
+        conversion_growth_rate: "{{response.body.growth_rates.conversion}}"
+      note: >
+        如果不想依赖外部 API，可以将简单比率计算放在飞书公式字段中完成。
+        但增长率计算（与上周对比）需要访问历史数据，建议使用后端 API。
+
+  # --- 步骤 3：创建分析汇总记录 ---
+  - step: 3
+    name: "写入分析汇总记录"
+    action_type: "批量创建记录"  # 为每个核心指标创建一条记录
+    config:
+      table: "数据分析表"
+      multiple_records:
+        # 指标1：总流量
+        - field_values:
+            - field: "指标类别"
+              value: "流量"
+            - field: "指标名称"
+              value: "总访问量"
+            - field: "指标值"
+              value: "{{total_visits}}"
+            - field: "统计周期"
+              value: "周"
+            - field: "统计日期"
+              value: "{{NOW()}}"
+            - field: "对比上周"
+              value: "{{traffic_growth_rate}}%"
+            - field: "数据来源"
+              value: "网站流量表"
+        # 指标2：总线索
+        - field_values:
+            - field: "指标类别"
+              value: "线索"
+            - field: "指标名称"
+              value: "总线索数"
+            - field: "指标值"
+              value: "{{total_leads}}"
+            - field: "统计周期"
+              value: "周"
+            - field: "统计日期"
+              value: "{{NOW()}}"
+            - field: "对比上周"
+              value: "{{leads_growth_rate}}%"
+            - field: "数据来源"
+              value: "线索管理表"
+        # 指标3：总体转化率
+        - field_values:
+            - field: "指标类别"
+              value: "转化"
+            - field: "指标名称"
+              value: "整体转化率（线索→成交）"
+            - field: "指标值"
+              value: "{{overall_conversion_rate}}"
+            - field: "单位"
+              value: "%"
+            - field: "统计周期"
+              value: "周"
+            - field: "统计日期"
+              value: "{{NOW()}}"
+            - field: "对比上周"
+              value: "{{conversion_growth_rate}}%"
+            - field: "数据来源"
+              value: "自动计算"
+        # 指标4：平均SEO评分
+        - field_values:
+            - field: "指标类别"
+              value: "SEO"
+            - field: "指标名称"
+              value: "平均SEO评分"
+            - field: "指标值"
+              value: "{{avg_seo_score}}"
+            - field: "统计周期"
+              value: "周"
+            - field: "统计日期"
+              value: "{{NOW()}}"
+            - field: "对比上周"
+              value: "{{seo_growth_rate}}%"
+            - field: "数据来源"
+              value: "内容管理表"
+        # 指标5：MQL转化率
+        - field_values:
+            - field: "指标类别"
+              value: "转化"
+            - field: "指标名称"
+              value: "线索→MQL转化率"
+            - field: "指标值"
+              value: "{{lead_to_mql_rate}}"
+            - field: "单位"
+              value: "%"
+            - field: "统计周期"
+              value: "周"
+            - field: "统计日期"
+              value: "{{NOW()}}"
+            - field: "数据来源"
+              value: "自动计算"
+        # 指标6：内容产出
+        - field_values:
+            - field: "指标类别"
+              value: "内容"
+            - field: "指标名称"
+              value: "本周发布内容数"
+            - field: "指标值"
+              value: "{{published_content_count}}"
+            - field: "统计周期"
+              value: "周"
+            - field: "统计日期"
+              value: "{{NOW()}}"
+            - field: "数据来源"
+              value: "内容管理表"
+
+  # --- 步骤 4：生成分析报告卡片并发送群聊 ---
+  - step: 4
+    name: "发送分析报告到团队群聊"
+    action_type: "发送飞书消息"
+    config:
+      message_type: "card"
+      recipient:
+        type: "群聊"
+        group_chat_id: "{{MARKETING_TEAM_GROUP_CHAT_ID}}"  # 替换为实际群聊ID
+      card_template:
+        header:
+          title: "📊 本周营销数据报告"
+          subtitle: "{{DATE_FORMAT(DATE_ADD(NOW(), -7, 'day'), 'MM/DD')}} - {{DATE_FORMAT(NOW(), 'MM/DD')}}"
+          template: "blue"
+        body:
+          - type: "markdown"
+            content: >
+              ---
+              **📈 流量概览**
+              - 总访问量：**{{total_visits}}**（{{IF(traffic_growth_rate >= 0, '↑', '↓')}}{{traffic_growth_rate}}%）
+              - 独立访客：{{total_unique_visitors}}
+              - 平均跳出率：{{avg_bounce_rate}}%
+              - 页面浏览量：{{total_pageviews}}
+              
+              ---
+              **👥 线索概览**
+              - 新线索总数：**{{total_leads}}**（{{IF(leads_growth_rate >= 0, '↑', '↓')}}{{leads_growth_rate}}%）
+              - MQL：{{mql_count}} | SQL：{{sql_count}} | 成交：{{won_count}}
+              - 广告来源线索：{{adsource_leads}}
+              
+              ---
+              **🔄 转化漏斗**
+              | 阶段 | 转化率 | 变化 |
+              |------|--------|------|
+              | 访客→线索 | {{visitor_to_lead_rate}}% | — |
+              | 线索→MQL | {{lead_to_mql_rate}}% | — |
+              | MQL→SQL | {{mql_to_sql_rate}}% | — |
+              | SQL→成交 | {{sql_to_won_rate}}% | — |
+              | **整体** | **{{overall_conversion_rate}}%** | {{IF(conversion_growth_rate >= 0, '↑', '↓')}}{{conversion_growth_rate}}% |
+              
+              ---
+              **📝 内容 & SEO**
+              - 本周发布：{{published_content_count}} 篇
+              - 平均SEO评分：**{{avg_seo_score}}**（{{IF(seo_growth_rate >= 0, '↑', '↓')}}{{seo_growth_rate}}%）
+              
+              ---
+              **🎯 活动**
+              - 活跃活动：{{active_campaigns}} 个
+        actions:
+          - type: "button"
+            text: "查看完整分析表"
+            url: "{{ANALYTICS_TABLE_URL}}"
+            color: "primary"
+          - type: "button"
+            text: "打开营销仪表盘"
+            url: "{{DASHBOARD_URL}}"
+            color: "default"
+
+  # --- 步骤 5：异常检测与预警 ---
+  - step: 5
+    name: "异常数据检测与告警"
+    action_type: "多条件分支评估"
+    config:
+      anomalies_check:
+        # 对每个关键指标进行下降超过 20% 的检测
+        checks:
+          - metric: "traffic"
+            field: "traffic_growth_rate"
+            threshold: -20
+            condition: "小于 (<)"
+            alert_title: "🚨 流量骤降预警"
+          - metric: "leads"
+            field: "leads_growth_rate"
+            threshold: -20
+            condition: "小于 (<)"
+            alert_title: "🚨 线索量骤降预警"
+          - metric: "seo"
+            field: "seo_growth_rate"
+            threshold: -20
+            condition: "小于 (<)"
+            alert_title: "📉 SEO评分下降预警"
+          - metric: "conversion"
+            field: "conversion_growth_rate"
+            threshold: -20
+            condition: "小于 (<)"
+            alert_title: "⚠️ 转化率下降预警"
+      on_anomaly_detected:
+        action_type: "发送飞书消息"
+        config:
+          message_type: "card"
+          recipient:
+            type: "群聊"
+            group_chat_id: "{{MARKETING_TEAM_GROUP_CHAT_ID}}"
+          card_template:
+            header:
+              title: "{{alert_title}}"
+              template: "red"
+            body:
+              - type: "markdown"
+                content: >
+                  **检测到以下指标出现异常下降！**\n\n
+                  | 指标 | 当前值 | 变化率 |
+                  |------|--------|--------|
+                  {{生成异常指标表格}}\n\n
+                  ⚠️ 指标下降超过 20% 阈值，建议立即排查原因。\n\n
+                  **可能的排查方向：**\n
+                  {{生成排查建议}}
+            actions:
+              - type: "button"
+                text: "查看详细数据"
+                url: "{{ANALYTICS_TABLE_URL}}"
+                color: "danger"
+      on_no_anomaly:
+        step: "skip"
+        description: "所有指标正常，无需发送预警"
+
+  # --- 步骤 6：记录工作流日志 ---
+  - step: 6
+    name: "记录到工作流日志表"
+    action_type: "创建记录"
+    config:
+      table: "工作流日志表"
+      field_values:
+        - field: "工作流名称"
+          value: "数据分析报告流程"
+        - field: "触发时间"
+          value: "{{NOW()}}"
+        - field: "操作类型"
+          value: "数据分析报告"
+        - field: "关联记录ID"
+          value: "N/A（定时触发）"
+        - field: "执行步骤"
+          value: "步骤1(聚合) → 步骤2(计算) → 步骤3(写入) → 步骤4(卡片) → 步骤5(异常检测)"
+        - field: "执行结果"
+          value: "成功"
+        - field: "总访问量"
+          value: "{{total_visits}}"
+        - field: "线索总数"
+          value: "{{total_leads}}"
+        - field: "整体转化率"
+          value: "{{overall_conversion_rate}}%"
+        - field: "是否触发异常"
+          value: "{{IF(存在异常, '是', '否')}}"
+
+# ============================================================
+# 五、错误处理说明
+# ============================================================
+error_handling:
+  global:
+    on_aggregation_empty:
+      - "若所有聚合查询返回空，发送消息：'本周暂无数据，请检查数据源'"
+      - "仍创建日志记录，但标记为'数据为空'"
+    on_compute_api_failure:
+      - "使用飞书公式字段中的备用简版计算结果"
+      - "报告中标注'增长率数据暂不可用'"
+    on_partial_data:
+      - "若部分数据表查询失败，继续生成报告，缺失数据标注'N/A'"
+      - "不影响其他指标的正常处理和展示"
+  fallback_notification:
+    title: "⚠️ 数据分析报告流程异常"
+    message: "数据分析报告生成失败。\n步骤：{{failed_step}}\n错误：{{error_message}}\n\n请手动查看数据表获取本周数据。"
+    recipients: ["系统管理员"]
+
+# ============================================================
+# 六、配置建议
+# ============================================================
+configuration_tips:
+  - topic: "聚合计算"
+    advice: >
+      飞书自动化原生聚合能力有限。强烈建议在业务后端搭建一个聚合 API
+      （如 /api/analytics/weekly-summary），工作流只负责调用该 API 并处理结果。
+      这样计算逻辑可维护、可测试，不依赖飞书自动化的公式引擎。
+  - topic: "增长率计算"
+    advice: >
+      增长率需要对比上周同期数据。建议在分析表中保留历史快照，
+      或通过后端 API 查询历史记录并计算。
+  - topic: "性能优化"
+    advice: >
+      如果数据量较大（>1000条记录），查询可能超时。
+      建议分批查询或使用后端 API 替代飞书原生查询。
+
+# ============================================================
+# 七、测试验证清单
+# ============================================================
+test_checklist:
+  - "确保各数据表中过去7天有测试数据"
+  - "手动触发工作流执行"
+  - "验证聚合数据是否正确汇总"
+  - "检查转化率计算是否准确"
+  - "检查分析表是否写入所有指标记录"
+  - "确认团队群聊收到分析报告卡片"
+  - "故意制造一项下降超过20%的指标，验证异常告警是否触发"
+  - "检查所有指标正常时是否不会误发告警"
+  - "检查工作流日志表记录"
+  - "将工作流改回'定时触发'模式（每周一 08:00）"

@@ -1,0 +1,271 @@
+{
+  "table": {
+    "name": "skills_registry",
+    "label": "技能注册表",
+    "description": "注册和管理营销自动化系统中所有的技能/功能模块，跟踪使用情况和版本状态"
+  },
+  "fields": [
+    {
+      "name": "_id",
+      "type": "autonumber",
+      "required": false,
+      "label": "技能编号",
+      "config": {
+        "description": "自动生成的技能唯一标识符"
+      }
+    },
+    {
+      "name": "skill_name",
+      "type": "text",
+      "required": true,
+      "label": "技能名称",
+      "config": {
+        "description": "技能的技术名称（如 skill-seo-audit）",
+        "max_length": 100
+      }
+    },
+    {
+      "name": "skill_label",
+      "type": "text",
+      "required": true,
+      "label": "技能显示名",
+      "config": {
+        "description": "技能的友好显示名称（如 SEO审计报告生成器）",
+        "max_length": 200
+      }
+    },
+    {
+      "name": "category",
+      "type": "single_select",
+      "required": false,
+      "label": "技能分类",
+      "config": {
+        "description": "技能所属功能分类",
+        "options": [
+          { "id": "content", "label": "content", "color": "#3B82F6" },
+          { "id": "advertising", "label": "advertising", "color": "#10B981" },
+          { "id": "seo", "label": "seo", "color": "#F59E0B" },
+          { "id": "conversion", "label": "conversion", "color": "#8B5CF6" },
+          { "id": "email", "label": "email", "color": "#EC4899" },
+          { "id": "social", "label": "social", "color": "#06B6D4" },
+          { "id": "growth", "label": "growth", "color": "#84CC16" },
+          { "id": "analytics", "label": "analytics", "color": "#F97316" },
+          { "id": "strategy", "label": "strategy", "color": "#6366F1" }
+        ]
+      }
+    },
+    {
+      "name": "triggers",
+      "type": "multiline_text",
+      "required": true,
+      "label": "触发条件",
+      "config": {
+        "description": "技能的触发关键词、命令或条件"
+      }
+    },
+    {
+      "name": "description",
+      "type": "multiline_text",
+      "required": true,
+      "label": "技能描述",
+      "config": {
+        "description": "技能的详细功能说明和使用场景"
+      }
+    },
+    {
+      "name": "version",
+      "type": "text",
+      "required": true,
+      "label": "版本号",
+      "config": {
+        "description": "技能当前版本号（如 v1.2.0）",
+        "max_length": 20
+      }
+    },
+    {
+      "name": "status",
+      "type": "single_select",
+      "required": false,
+      "label": "状态",
+      "config": {
+        "description": "技能当前状态",
+        "options": [
+          { "id": "active", "label": "active", "color": "#10B981" },
+          { "id": "inactive", "label": "inactive", "color": "#94A3B8" },
+          { "id": "deprecated", "label": "deprecated", "color": "#EF4444" }
+        ]
+      }
+    },
+    {
+      "name": "priority_level",
+      "type": "single_select",
+      "required": false,
+      "label": "优先级",
+      "config": {
+        "description": "技能的重要性和优先级",
+        "options": [
+          { "id": "p0_core", "label": "P0核心", "color": "#EF4444" },
+          { "id": "p1_recommended", "label": "P1推荐", "color": "#F59E0B" },
+          { "id": "p2_optional", "label": "P2可选", "color": "#3B82F6" }
+        ]
+      }
+    },
+    {
+      "name": "dependencies",
+      "type": "multi_select",
+      "required": false,
+      "label": "依赖模块",
+      "config": {
+        "description": "技能依赖的数据模块",
+        "options": [
+          { "id": "campaigns", "label": "campaigns", "color": "#3B82F6" },
+          { "id": "content", "label": "content", "color": "#10B981" },
+          { "id": "leads", "label": "leads", "color": "#F59E0B" },
+          { "id": "tasks", "label": "tasks", "color": "#8B5CF6" },
+          { "id": "analytics", "label": "analytics", "color": "#EC4899" },
+          { "id": "workflow_log", "label": "workflow_log", "color": "#06B6D4" }
+        ]
+      }
+    },
+    {
+      "name": "api_dependencies",
+      "type": "multiline_text",
+      "required": false,
+      "label": "API依赖",
+      "config": {
+        "description": "技能所需的外部API和服务依赖"
+      }
+    },
+    {
+      "name": "last_used",
+      "type": "date",
+      "required": false,
+      "label": "最后使用日期",
+      "config": {
+        "description": "技能最近一次被调用的日期",
+        "format": "yyyy-MM-dd"
+      }
+    },
+    {
+      "name": "usage_count",
+      "type": "number",
+      "required": false,
+      "label": "使用次数",
+      "config": {
+        "description": "技能被调用的总次数",
+        "min": 0,
+        "decimal_places": 0
+      }
+    },
+    {
+      "name": "avg_rating",
+      "type": "number",
+      "required": false,
+      "label": "平均评分",
+      "config": {
+        "description": "技能效果平均评分（1-5分）",
+        "min": 1,
+        "max": 5,
+        "decimal_places": 1
+      }
+    },
+    {
+      "name": "skill_file_path",
+      "type": "text",
+      "required": false,
+      "label": "技能文件路径",
+      "config": {
+        "description": "技能实现文件的存储路径",
+        "max_length": 500
+      }
+    },
+    {
+      "name": "output_example",
+      "type": "multiline_text",
+      "required": false,
+      "label": "输出示例",
+      "config": {
+        "description": "技能运行的输出内容示例"
+      }
+    }
+  ],
+  "views": [
+    {
+      "name": "全部技能",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "category", "direction": "asc" },
+        { "field": "skill_name", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "按分类和名称排序展示所有注册技能",
+        "visible_fields": ["_id", "skill_name", "skill_label", "category", "priority_level", "status", "version", "usage_count", "avg_rating"]
+      }
+    },
+    {
+      "name": "P0核心",
+      "type": "grid",
+      "filter": [
+        { "field": "priority_level", "operator": "is", "value": "p0_core" }
+      ],
+      "sort": [
+        { "field": "category", "direction": "asc" },
+        { "field": "skill_name", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "仅显示P0核心级别技能",
+        "visible_fields": ["_id", "skill_name", "skill_label", "category", "status", "version", "usage_count", "dependencies"]
+      }
+    },
+    {
+      "name": "按分类",
+      "type": "grid",
+      "filter": [],
+      "sort": [
+        { "field": "priority_level", "direction": "asc" },
+        { "field": "skill_name", "direction": "asc" }
+      ],
+      "group": {
+        "field": "category",
+        "type": "single_select"
+      },
+      "config": {
+        "description": "按技能分类分组查看",
+        "visible_fields": ["_id", "skill_name", "skill_label", "priority_level", "status", "version", "usage_count", "triggers"]
+      }
+    },
+    {
+      "name": "高频使用",
+      "type": "grid",
+      "filter": [
+        { "field": "usage_count", "operator": "is_greater_than", "value": 10 }
+      ],
+      "sort": [
+        { "field": "usage_count", "direction": "desc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选使用次数超过10次的技能，按使用频率降序排列",
+        "visible_fields": ["_id", "skill_name", "skill_label", "category", "usage_count", "avg_rating", "last_used", "status"]
+      }
+    },
+    {
+      "name": "未使用",
+      "type": "grid",
+      "filter": [
+        { "field": "last_used", "operator": "is_empty" }
+      ],
+      "sort": [
+        { "field": "category", "direction": "asc" }
+      ],
+      "group": null,
+      "config": {
+        "description": "筛选从未被使用过的技能，评估是否需要保留",
+        "visible_fields": ["_id", "skill_name", "skill_label", "category", "priority_level", "status", "version", "description"]
+      }
+    }
+  ]
+}

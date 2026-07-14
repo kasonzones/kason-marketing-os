@@ -1,0 +1,349 @@
+# ============================================================
+# 飞书工作流配置指南：SEO定期审计流程
+# ============================================================
+# 适用模块：飞书多维表格自动化 (Feishu Bitable Automation)
+# 创建方式：飞书 → 多维表格 → 自动化 → 新建工作流
+# ============================================================
+
+workflow:
+  name: "SEO定期审计流程"
+  description: >
+    每周一上午9点自动触发，扫描过去7天内发布且SEO评分低于70的内容，
+    为每篇问题内容创建优化任务，调用外部SEO审计API获取最新数据，
+    更新评分，生成分析指标，发送周报总结到群聊。
+
+# ============================================================
+# 一、触发器配置
+# ============================================================
+trigger:
+  type: "定时触发"  # 飞书自动化中的"按计划触发"
+  config:
+    schedule_type: "每周"
+    day_of_week: "星期一"  # 每周一
+    time: "09:00"  # 上午9:00
+    timezone: "Asia/Shanghai"  # 北京时间
+    # 飞书操作路径：自动化 → 新建 → 按计划触发 → 选择"每周一 09:00"
+
+# ============================================================
+# 二、前置准备（飞书权限要求）
+# ============================================================
+permissions:
+  - "多维表格：读取记录"             # 搜索和读取内容表
+  - "多维表格：修改记录"             # 更新SEO评分
+  - "多维表格：创建记录"             # 创建任务和分析记录
+  - "消息推送：发送消息到群聊"       # 发送周报总结
+  - "调用 Webhook"                  # 调用外部SEO审计API
+  - "飞书群聊机器人"                 # 配置群聊机器人
+
+# ============================================================
+# 三、步骤详细配置
+# ============================================================
+
+steps:
+
+  # --- 步骤 1：查找需要审计的内容 ---
+  - step: 1
+    name: "查找近期低SEO评分内容"
+    action_type: "查找记录"  # 飞书自动化中的"获取多条记录"
+    config:
+      table: "内容管理表"
+      filter_conditions:
+        # 条件1：发布日期 > 7天前
+        - field: "发布日期"
+          operator: "大于 (>)"  # 使用"晚于"或"大于"
+          value: "{{DATE_ADD(NOW(), -7, 'day')}}"
+          logic: "AND"
+        # 条件2：SEO评分 < 70
+        - field: "SEO评分"
+          operator: "小于 (<)"
+          value: 70
+      sort:
+        field: "SEO评分"
+        order: "升序"  # 从低到高排列
+      max_records: 50  # 最多获取50条
+      output_variable: "low_seo_records"  # 保存为列表变量
+      note: >
+        此步骤获取过去7天内发布且SEO评分低于70的所有内容记录。
+        如果查询结果为空，后续步骤将自动跳过。
+
+  # --- 步骤 2：为每篇低分内容创建SEO优化任务 ---
+  - step: 2
+    name: "批量创建SEO优化任务"
+    action_type: "循环处理"  # 飞书自动化中的"循环执行"
+    config:
+      input_list: "{{low_seo_records}}"  # 步骤1的查询结果列表
+      iteration_variable: "item"          # 每次循环的当前记录
+      on_empty: "跳过循环体"              # 列表为空时的处理
+      loop_body:
+        - action_type: "创建记录"
+          config:
+            table: "任务管理表"
+            field_values:
+              - field: "任务标题"
+                value: "SEO优化 - {{item.标题}}"
+              - field: "任务类型"
+                value: "SEO优化"
+              - field: "优先级"
+                value: "P2"
+              - field: "负责人"
+                value: "{{item.作者}}"
+              - field: "截止日期"
+                value: "{{DATE_ADD(NOW(), 5, 'day')}}"  # 今天+5天
+              - field: "关联内容"
+                value: "{{item.标题}}"
+              - field: "关联内容ID"
+                value: "{{item.记录ID}}"
+              - field: "当前SEO评分"
+                value: "{{item.SEO评分}}"
+              - field: "发布URL"
+                value: "{{item.发布URL}}"
+              - field: "任务描述"
+                value: >
+                  内容"{{item.标题}}"在每周SEO审计中被标记为低分内容。
+                  \n\n当前评分：{{item.SEO评分}} / 100
+                  \n发布URL：{{item.发布URL}}
+                  \n\n需要优化项目：\n
+                  1. 关键词密度和位置优化\n
+                  2. Meta 标题和描述优化\n
+                  3. 内部链接结构优化\n
+                  4. 图片 Alt 标签检查\n
+                  5. 内容结构（H1/H2/H3）检查\n
+                  6. 移动端显示效果\n
+                  7. 页面加载速度
+                  \n\n优化后请等待下次审计确认评分提升。
+              - field: "状态"
+                value: "待处理"
+              - field: "创建来源"
+                value: "SEO每周审计"
+              - field: "创建日期"
+                value: "{{NOW()}}"
+
+  # --- 步骤 3：调用外部SEO审计API ---
+  - step: 3
+    name: "调用SEO审计API获取最新数据"
+    action_type: "调用Webhook"
+    config:
+      method: "POST"
+      url: "https://your-server.com/api/seo/weekly-audit"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer {{SEO_API_SECRET_TOKEN}}"
+      body_type: "JSON"
+      body:
+        site_url: "https://your-website.com"
+        audit_type: "weekly"
+        date_range:
+          start: "{{DATE_ADD(NOW(), -7, 'day')}}"
+          end: "{{NOW()}}"
+        include_details: true
+        check_items:
+          - "keyword_density"
+          - "meta_tags"
+          - "internal_links"
+          - "image_alt"
+          - "heading_structure"
+          - "mobile_friendly"
+          - "page_speed"
+          - "schema_markup"
+          - "social_meta"
+      timeout_seconds: 120  # SEO API 可能需要较长时间
+      retry:
+        max_retries: 2
+        retry_delay_seconds: 10
+      response_mapping:
+        audit_results: "{{response.body.audited_urls}}"  # 审计结果列表
+        overall_score: "{{response.body.overall_score}}"
+        total_audited: "{{response.body.total_audited}}"
+    error_handling:
+      on_error: "记录错误日志，继续后续步骤"
+
+  # --- 步骤 4：更新内容表的SEO评分 ---
+  - step: 4
+    name: "批量更新SEO评分"
+    action_type: "循环处理"
+    config:
+      input_list: "{{audit_results}}"  # 步骤3的API响应结果列表
+      iteration_variable: "audit_item"
+      on_empty: "跳过循环体"
+      loop_body:
+        - action_type: "修改记录"
+          config:
+            table: "内容管理表"
+            record_match:
+              match_field: "发布URL"
+              match_value: "{{audit_item.url}}"
+            field_updates:
+              - field: "SEO评分"
+                value: "{{audit_item.seo_score}}"
+              - field: "SEO上次审计时间"
+                value: "{{NOW()}}"
+              - field: "SEO审计详情"
+                value: "{{audit_item.details}}"
+            # 如果找不到匹配记录，跳过
+            on_no_match: "skip"
+      note: >
+        根据外部SEO API返回的审计结果，逐条匹配内容表中的URL
+        并更新对应的SEO评分字段。包含详细的审计信息。
+
+  # --- 步骤 5：创建分析指标记录 ---
+  - step: 5
+    name: "创建SEO分析指标记录"
+    action_type: "创建记录"
+    config:
+      table: "数据分析表"  # 分析指标表
+      field_values:
+        - field: "指标类别"
+          value: "SEO"
+        - field: "指标名称"
+          value: "平均SEO评分"
+        - field: "指标值"
+          value: "{{overall_score}}"  # 来自API响应的整体平均分
+        - field: "统计周期"
+          value: "周"
+        - field: "统计日期"
+          value: "{{NOW()}}"
+        - field: "数据来源"
+          value: "SEO审计API"
+        - field: "审计内容数"
+          value: "{{total_audited}}"
+        - field: "低分内容数"
+          value: "{{LEN(low_seo_records)}}"  # 步骤1查出的低分数量
+        - field: "备注"
+          value: >
+            本周SEO审计完成。
+            审计内容: {{total_audited}} 篇
+            低分内容(<70): {{LEN(low_seo_records)}} 篇
+            平均评分: {{overall_score}}
+
+  # --- 步骤 6：发送每周SEO总结到群聊 ---
+  - step: 6
+    name: "发送SEO周报总结"
+    action_type: "发送飞书消息"
+    config:
+      message_type: "card"
+      recipient:
+        type: "群聊"
+        group_chat_id: "{{SEO_TEAM_GROUP_CHAT_ID}}"  # 替换为实际群聊ID
+      card_template:
+        header:
+          title: "📈 每周SEO审计报告"
+          template: "blue"
+        body:
+          - type: "markdown"
+            content: >
+              **SEO 周报 | {{DATE_FORMAT(NOW(), 'YYYY年MM月DD日')}}**\n\n
+              ---
+              **📊 核心指标**\n
+              | 指标 | 数值 |\n
+              |------|------|\n
+              | 审计内容总数 | {{total_audited}} 篇 |\n
+              | 平均SEO评分 | **{{overall_score}} 分** |\n
+              | 低分内容（<70分） | {{LEN(low_seo_records)}} 篇 |\n\n
+              ---
+              **⚠️ 需要优化的内容（评分最低前5篇）**\n
+              {{生成低分内容列表Markdown}}\n\n
+              ---
+              **📋 已自动创建的任务**\n
+              - 为 {{LEN(low_seo_records)}} 篇低分内容创建了SEO优化任务
+              - 任务优先级：P2
+              - 截止日期：5个工作日内
+            # 低分内容列表生成说明：
+            # 循环 low_seo_records 取前5条，格式为：
+            # {序号}. [{标题}]({URL}) - **{SEO评分}分**
+          - type: "divider"
+          - type: "markdown"
+            content: >
+              💡 **优化建议**\n
+              1. 优先处理评分最低的内容\n
+              2. 关注关键词密度（目标1-2%）\n
+              3. 确保每篇内容有唯一的Meta描述\n
+              4. 添加至少3个内部链接
+        actions:
+          - type: "button"
+            text: "查看内容管理表"
+            url: "{{CONTENT_TABLE_URL}}"
+            color: "primary"
+          - type: "button"
+            text: "查看任务看板"
+            url: "{{TASKS_TABLE_URL}}"
+            color: "default"
+
+  # --- 步骤 7：记录工作流日志 ---
+  - step: 7
+    name: "记录到工作流日志表"
+    action_type: "创建记录"
+    config:
+      table: "工作流日志表"
+      field_values:
+        - field: "工作流名称"
+          value: "SEO定期审计流程"
+        - field: "触发时间"
+          value: "{{NOW()}}"
+        - field: "操作类型"
+          value: "SEO审计"
+        - field: "关联记录ID"
+          value: "N/A（定时触发）"
+        - field: "执行步骤"
+          value: "步骤1(查询) → 步骤2(创建任务) → 步骤3(API调用) → 步骤4(更新评分) → 步骤5(分析记录) → 步骤6(群消息)"
+        - field: "执行结果"
+          value: "成功"
+        - field: "审计内容数"
+          value: "{{total_audited}}"
+        - field: "低分内容数"
+          value: "{{LEN(low_seo_records)}}"
+        - field: "平均评分"
+          value: "{{overall_score}}"
+        - field: "创建任务数"
+          value: "{{LEN(low_seo_records)}}"
+
+# ============================================================
+# 四、错误处理说明
+# ============================================================
+error_handling:
+  global:
+    on_seo_api_unavailable:
+      - "重试 2 次，间隔 10 秒"
+      - "若仍失败，发送告警消息给管理员：'SEO审计API不可用，本周审计跳过'"
+      - "日志中记录失败信息，标记'API不可用'"
+      - "仍执行步骤2（基于现有数据创建任务），跳过步骤4（评分更新）"
+    on_empty_results:
+      - "若步骤1查询结果为空，步骤2自动跳过（无任务创建）"
+      - "步骤6消息中显示'本周无低分内容'"
+    on_rate_limit:
+      - "批量更新操作可能触发频率限制，建议在循环中添加 200ms 延迟"
+    fallback_notification:
+      title: "⚠️ SEO审计流程异常"
+      message: "SEO定期审计流程在第 {{failed_step}} 步发生错误。\n错误类型：{{error_type}}\n错误详情：{{error_message}}"
+      recipients: ["系统管理员"]
+
+# ============================================================
+# 五、配置前的准备工作
+# ============================================================
+pre_configuration:
+  - item: "内容管理表"
+    action: "确认表中包含以下字段：发布日期(日期)、SEO评分(数字)、发布URL(文本)、作者(人员)、标题(文本)"
+  - item: "任务管理表"
+    action: "确认表中包含任务相关字段，特别是'创建来源'和'当前SEO评分'字段"
+  - item: "数据分析表"
+    action: "确认表中包含 指标类别、指标名称、指标值 等字段"
+  - item: "SEO团队群聊"
+    action: "获取 SEO 团队群聊的 chat_id，填入步骤6的 group_chat_id 位置"
+  - item: "SEO审计API"
+    action: "确保 https://your-server.com/api/seo/weekly-audit 接口可用，返回 JSON 格式"
+  - item: "API Token"
+    action: "在飞书工作流的环境变量中配置 SEO_API_SECRET_TOKEN"
+
+# ============================================================
+# 六、测试验证清单
+# ============================================================
+test_checklist:
+  - "手动将飞书工作流触发器改为'手动触发'模式进行测试"
+  - "确认搜索引擎中已存在发布时间在过去7天内的低分内容"
+  - "执行后检查任务表是否生成了对应数量的SEO优化任务"
+  - "验证每条任务的负责人是否正确（应该是文章作者）"
+  - "验证外部SEO审计API是否收到请求"
+  - "检查内容表的SEO评分是否更新为API返回的新值"
+  - "检查数据分析表是否有新记录"
+  - "确认SEO团队群聊收到了周报卡片消息"
+  - "检查工作流日志表记录是否完整"
+  - "将工作流改回'定时触发'模式（每周一 09:00）"

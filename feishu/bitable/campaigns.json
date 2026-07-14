@@ -1,0 +1,33 @@
+{
+  "table_name": "campaigns",
+  "table_label": "营销活动",
+  "description": "统一管理所有营销活动，追踪预算、KPI和ROI",
+  "fields": [
+    {"name": "_id", "type": "autonumber", "required": true, "label": "活动ID", "config": {"format": "AUTO-{000}"}},
+    {"name": "campaign_name", "type": "text", "required": true, "label": "活动名称"},
+    {"name": "campaign_type", "type": "single_select", "required": true, "label": "活动类型", "config": {"options": ["SEO", "内容营销", "付费广告", "邮件营销", "社交媒体", "产品发布", "品牌推广", "联合营销", "PR", "其他"]}},
+    {"name": "status", "type": "single_select", "required": true, "label": "状态", "config": {"options": ["规划中", "进行中", "已暂停", "已完成", "已归档"]}},
+    {"name": "priority", "type": "single_select", "required": true, "label": "优先级", "config": {"options": ["P0-紧急", "P1-高", "P2-中", "P3-低"]}},
+    {"name": "objective", "type": "multiline_text", "required": true, "label": "活动目标"},
+    {"name": "budget", "type": "number", "required": false, "label": "预算(元)", "config": {"decimal_places": 2, "use_separate": true}},
+    {"name": "spent", "type": "number", "required": false, "label": "已花费(元)", "config": {"decimal_places": 2, "use_separate": true}},
+    {"name": "start_date", "type": "date", "required": true, "label": "开始日期"},
+    {"name": "end_date", "type": "date", "required": false, "label": "结束日期"},
+    {"name": "owner", "type": "user", "required": true, "label": "负责人"},
+    {"name": "channel", "type": "multi_select", "required": false, "label": "渠道", "config": {"options": ["官网", "Google", "Meta", "LinkedIn", "TikTok", "邮件", "微信", "抖音", "小红书", "其他"]}},
+    {"name": "target_audience", "type": "text", "required": false, "label": "目标受众"},
+    {"name": "kpi_target", "type": "multiline_text", "required": false, "label": "KPI目标", "config": {"placeholder": "JSON格式，如: {\"leads\": 100, \"conversion_rate\": 5}"}},
+    {"name": "kpi_actual", "type": "multiline_text", "required": false, "label": "实际KPI"},
+    {"name": "content_count", "type": "link_records", "required": false, "label": "关联内容", "config": {"link_table": "content", "multiple": true}},
+    {"name": "lead_count", "type": "link_records", "required": false, "label": "关联线索", "config": {"link_table": "leads", "multiple": true}},
+    {"name": "notes", "type": "multiline_text", "required": false, "label": "备注"}
+  ],
+  "views": [
+    {"name": "全部活动", "type": "grid", "filter": null, "sort": [{"field": "start_date", "direction": "desc"}], "group": ["status"]},
+    {"name": "进行中", "type": "grid", "filter": {"field": "status", "operator": "is", "value": "进行中"}, "sort": [{"field": "priority", "direction": "asc"}], "group": ["owner"]},
+    {"name": "本月活动", "type": "grid", "filter": {"field": "start_date", "operator": "this_month"}, "sort": [{"field": "start_date", "direction": "asc"}], "group": ["campaign_type"]},
+    {"name": "看板视图", "type": "kanban", "filter": null, "group": ["status"]},
+    {"name": "时间线", "type": "gantt", "filter": null, "sort": [{"field": "start_date", "direction": "asc"}], "config": {"start_field": "start_date", "end_field": "end_date"}},
+    {"name": "预算概览", "type": "grid", "filter": {"field": "budget", "operator": "is_greater", "value": 0}, "sort": [{"field": "budget", "direction": "desc"}]}
+  ]
+}
