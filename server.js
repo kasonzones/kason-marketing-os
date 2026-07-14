@@ -25,6 +25,10 @@ const API_KEY = process.env.API_KEY || 'kason_marketing_os_2026';
 const engine = new AutomationEngine(process.env.FEISHU_APP_ID, process.env.FEISHU_APP_SECRET);
 engine.setAppToken(APP_TOKEN);
 
+const SkillHandler = require('./api/skill-handler');
+const skillHandler = new SkillHandler(engine);
+skillHandler.setAppToken(APP_TOKEN);
+
 // ── 初始化 WordPress (可选) ──
 let wpClient = null;
 let contentSync = null;
@@ -79,11 +83,21 @@ app.post('/webhook/feishu', (req, res) => {
   const event = req.body.event;
   if (!event) return;
 
-  const { event_type } = req.header || {};
-  console.log(`📨 飞书事件: ${event_type}`);
+  const eventType = event.type || req.header?.event_type || '';
+  console.log(`📨 飞书事件: ${eventType}`);
 
   // 匹配事件类型
   (async () => {
+    // 消息事件 — 处理技能指令
+    if (eventType === 'im.message.receive_v1' || event.message?.chat_id) {
+      try {
+        await skillHandler.handleSkillCommand(event);
+        console.log('[Bot] 技能指令已处理');
+      } catch (e) {
+        console.error('[Bot] 处理失败:', e.message);
+      }
+      return;
+    }
     try {
       if (event_type === 'bitable.record.created') {
         const tableId = event.table_id;
