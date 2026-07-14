@@ -28,9 +28,10 @@ engine.setAppToken(APP_TOKEN);
 // ── 初始化 WordPress (可选) ──
 let wpClient = null;
 let contentSync = null;
-if (process.env.WP_SITE_URL) {
+const wpConfig = require('./api/wordpress/config');
+if (wpConfig.enabled) {
   try {
-    wpClient = new WordPressClient(require('./api/wordpress/config'));
+    wpClient = new WordPressClient(wpConfig);
     contentSync = new ContentSync(wpClient);
   } catch (e) {
     console.warn('⚠️ WordPress 未配置，内容发布到WP功能不可用');
